@@ -24,7 +24,11 @@ const DEFAULT_CONFIG = {
     { label: "ファンネーム", value: "ねむりんちゅ" }
   ],
   vipTitle: "サポート返礼",
-  vipRewards: ["限定お礼ボイス", "デジタル会員証", "限定イラストカード"],
+  vipRewards: [
+    { text: "限定お礼ボイス", imageUrl: "" },
+    { text: "デジタル会員証", imageUrl: "" },
+    { text: "限定イラストカード", imageUrl: "" }
+  ],
   goodsImages: [],
   collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
   collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
@@ -65,7 +69,6 @@ export default function App() {
       console.warn(e);
     }
 
-    // Firestore リアルタイム監視
     const unsubConfig = onSnapshot(doc(db, "app_config", "global"), (d) => {
       if (d.exists()) setConfig((prev: any) => ({ ...prev, ...d.data() }));
     });
@@ -195,7 +198,17 @@ export default function App() {
                             <AnimatePresence>
                               {openNews[n.id] && (
                                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                                  <p className="px-4 pb-4 text-xs text-slate-600 whitespace-pre-wrap border-t pt-3">{n.content}</p>
+                                  <div className="px-4 pb-4 border-t pt-3 space-y-3">
+                                    <p className="text-xs text-slate-600 whitespace-pre-wrap">{n.content}</p>
+                                    {n.imageUrl && (
+                                      <img
+                                        src={n.imageUrl}
+                                        alt=""
+                                        className="w-full rounded-xl object-cover max-h-48 cursor-pointer border border-slate-100 hover:opacity-95 transition"
+                                        onClick={() => setLightbox(n.imageUrl)}
+                                      />
+                                    )}
+                                  </div>
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -213,9 +226,19 @@ export default function App() {
                   <h2 className="text-center text-xl font-black tracking-wider">{config.profileTitle || "PROFILE"}</h2>
                   <div className="grid grid-cols-2 gap-3 bg-pink-50 p-4 rounded-2xl border border-pink-100">
                     {config.profileInfo?.map((info: any, i: number) => (
-                      <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                        <span className="text-xs text-slate-400 block mb-0.5">{info.label}</span>
-                        <span className="text-sm font-bold text-slate-700">{info.value}</span>
+                      <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between gap-2">
+                        <div className="truncate">
+                          <span className="text-[10px] text-slate-400 block mb-0.5">{info.label}</span>
+                          <span className="text-xs font-bold text-slate-700">{info.value}</span>
+                        </div>
+                        {info.imageUrl && (
+                          <img
+                            src={info.imageUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-lg object-cover border border-slate-100 flex-shrink-0 cursor-pointer"
+                            onClick={() => setLightbox(info.imageUrl)}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -253,16 +276,31 @@ export default function App() {
                 <div className="p-6 space-y-8">
                   <h2 className="text-center text-xl font-black tracking-wider">{config.vipTitle || "サポート返礼"}</h2>
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
-                    {config.vipRewards?.map((reward: string, i: number) => (
-                      <div key={i} className="flex items-center space-x-3 text-sm font-medium py-1.5 border-b border-slate-50 last:border-0">
-                        {i < 7 ? (
-                          <span className="w-6 h-6 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs flex-shrink-0">{i + 1}</span>
-                        ) : (
-                          <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0"><Gift className="w-3 h-3 text-slate-400" /></span>
-                        )}
-                        <span>{reward}</span>
-                      </div>
-                    ))}
+                    {config.vipRewards?.map((rew: any, i: number) => {
+                      const text = typeof rew === "string" ? rew : rew.text;
+                      const imageUrl = typeof rew === "string" ? "" : rew.imageUrl;
+
+                      return (
+                        <div key={i} className="flex items-center justify-between text-sm font-medium py-2 border-b border-slate-50 last:border-0 gap-3">
+                          <div className="flex items-center space-x-3 truncate">
+                            {i < 7 ? (
+                              <span className="w-6 h-6 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs flex-shrink-0">{i + 1}</span>
+                            ) : (
+                              <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0"><Gift className="w-3 h-3 text-slate-400" /></span>
+                            )}
+                            <span className="truncate">{text}</span>
+                          </div>
+                          {imageUrl && (
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              className="w-8 h-8 rounded-lg object-cover border border-slate-200 flex-shrink-0 cursor-pointer hover:scale-105 transition"
+                              onClick={() => setLightbox(imageUrl)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-400 block mb-2">グッズ写真</span>
@@ -319,9 +357,19 @@ export default function App() {
                       <div className="bg-pink-50/60 border border-pink-100 rounded-2xl p-4 space-y-2">
                         <span className="text-xs font-bold text-pink-500 block mb-2">公約・達成特典</span>
                         {mission.rewards?.map((r: any, i: number) => (
-                          <div key={i} className="flex items-center space-x-2 text-xs font-medium text-slate-700">
-                            <span className="bg-white px-2 py-0.5 rounded-md font-bold text-pink-500 border border-pink-100">{r.step}</span>
-                            <span>{r.reward}</span>
+                          <div key={i} className="flex items-center justify-between text-xs font-medium text-slate-700 py-1 border-b border-pink-100/50 last:border-0">
+                            <div className="flex items-center space-x-2 truncate">
+                              <span className="bg-white px-2 py-0.5 rounded-md font-bold text-pink-500 border border-pink-100 flex-shrink-0">{r.step}</span>
+                              <span className="truncate">{r.reward}</span>
+                            </div>
+                            {r.imageUrl && (
+                              <img
+                                src={r.imageUrl}
+                                alt=""
+                                className="w-7 h-7 rounded-md object-cover border border-pink-200 flex-shrink-0 ml-2 cursor-pointer hover:scale-105 transition"
+                                onClick={() => setLightbox(r.imageUrl)}
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -379,7 +427,6 @@ export default function App() {
                     </button>
                   </div>
                   
-                  {/* 横3列 × 縦無制限 グリッド */}
                   <div className="grid grid-cols-3 gap-2">
                     {cards.length === 0 ? (
                       <p className="col-span-3 text-xs text-slate-400 text-center py-8">カードがまだ登録されていません</p>
@@ -424,7 +471,7 @@ export default function App() {
           ))}
         </nav>
 
-        {/* ライトボックス（画像拡大表示） */}
+        {/* ライトボックス（画像拡大モーダル） */}
         <AnimatePresence>
           {lightbox && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>

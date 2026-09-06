@@ -49,37 +49,47 @@ function ImageUploader({
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 w-full">
       <label className="text-xs font-bold text-slate-600 block">{label}</label>
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
         {value ? (
-          <img
-            src={value}
-            alt="Preview"
-            className="w-14 h-14 rounded-xl object-cover border border-slate-200 bg-slate-100 flex-shrink-0"
-          />
+          <div className="relative group">
+            <img
+              src={value}
+              alt="Preview"
+              className="w-14 h-14 rounded-xl object-cover border border-slate-200 bg-slate-100 flex-shrink-0"
+            />
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center shadow"
+              title="画像を削除"
+            >
+              ×
+            </button>
+          </div>
         ) : (
           <div className="w-14 h-14 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] text-slate-400 flex-shrink-0">
             No Img
           </div>
         )}
         <div className="flex-1 w-full space-y-1">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <input
               type="file"
               accept="image/*"
               disabled={uploading}
               onChange={handleFileChange}
-              className="text-xs block w-full file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100"
+              className="text-xs block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100 cursor-pointer"
             />
-            {uploading && <span className="text-xs text-pink-500 font-bold self-center animate-pulse">送信中...</span>}
+            {uploading && <span className="text-xs text-pink-500 font-bold self-center animate-pulse whitespace-nowrap">送信中...</span>}
           </div>
           <input
             type="text"
             placeholder="または画像URLを直接入力"
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full p-2 border rounded-lg text-xs bg-slate-50 focus:bg-white"
+            className="w-full p-1.5 border rounded-lg text-xs bg-slate-50 focus:bg-white"
           />
         </div>
       </div>
@@ -117,6 +127,7 @@ export default function AdminDashboard() {
   const [newNewsTitle, setNewNewsTitle] = useState("");
   const [newNewsDate, setNewNewsDate] = useState("");
   const [newNewsContent, setNewNewsContent] = useState("");
+  const [newNewsImageUrl, setNewNewsImageUrl] = useState("");
 
   // Timeline (PROFILE)
   const [timelineList, setTimelineList] = useState<any[]>([]);
@@ -187,7 +198,7 @@ export default function AdminDashboard() {
           .sort((a: any, b: any) => (a.cardNumber || 0) - (b.cardNumber || 0))
       );
     } catch (e) {
-      console.warn("データ初期取得警告:", e);
+      console.warn("データ取得警告:", e);
     }
   };
 
@@ -203,7 +214,7 @@ export default function AdminDashboard() {
   const saveConfig = async () => {
     try {
       await setDoc(doc(db, "app_config", "global"), config, { merge: true });
-      alert("一般設定を保存しました！");
+      alert("設定を保存しました！");
     } catch (err: any) {
       alert("保存失敗: " + err.message);
     }
@@ -227,12 +238,17 @@ export default function AdminDashboard() {
         title: newNewsTitle,
         date: newNewsDate,
         content: newNewsContent,
+        imageUrl: newNewsImageUrl,
         createdAt: serverTimestamp()
       });
-      setNewsList([{ id: docRef.id, title: newNewsTitle, date: newNewsDate, content: newNewsContent }, ...newsList]);
+      setNewsList([
+        { id: docRef.id, title: newNewsTitle, date: newNewsDate, content: newNewsContent, imageUrl: newNewsImageUrl },
+        ...newsList
+      ]);
       setNewNewsTitle("");
       setNewNewsDate("");
       setNewNewsContent("");
+      setNewNewsImageUrl("");
       alert("お知らせを追加しました！");
     } catch (e: any) {
       alert(e.message);
@@ -315,14 +331,14 @@ export default function AdminDashboard() {
     setSupportersList(supportersList.filter((s) => s.id !== id));
   };
 
-  // --- ガチャカード ---
+  // --- Cards ---
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCardNumber || !newCardTitle || !newCardKeyword) {
       return alert("No・カード名・合言葉を入力してください");
     }
     if (!newCardImageUrl) {
-      return alert("画像をアップロードするか、画像URLを入力してください");
+      return alert("画像を選択してください");
     }
 
     setIsAddingCard(true);
@@ -464,7 +480,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 画像アップローダー（ヘッダー・アイコン） */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 <ImageUploader
                   label="ヘッダー画像"
@@ -530,7 +545,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* お知らせ管理 */}
+            {/* お知らせ管理（画像アップロード対応） */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">HOME：お知らせ (News) 管理</h2>
               <form onSubmit={handleAddNews} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
@@ -559,6 +574,15 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewNewsContent(e.target.value)}
                   className="w-full p-2 border rounded-lg text-xs h-20"
                 />
+                
+                {/* お知らせ用画像添付 */}
+                <ImageUploader
+                  label="お知らせの添付画像（任意）"
+                  value={newNewsImageUrl}
+                  onChange={setNewNewsImageUrl}
+                  folder="news"
+                />
+
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700">
                   お知らせを追加
                 </button>
@@ -567,12 +591,17 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                 {newsList.map((n) => (
                   <div key={n.id} className="flex justify-between items-start border p-3 rounded-xl bg-slate-50 text-xs">
-                    <div>
-                      <span className="text-pink-500 font-bold mr-2">{n.date}</span>
-                      <strong className="text-slate-800">{n.title}</strong>
-                      <p className="text-slate-600 mt-1 whitespace-pre-wrap">{n.content}</p>
+                    <div className="flex gap-3">
+                      {n.imageUrl && (
+                        <img src={n.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover border flex-shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-pink-500 font-bold mr-2">{n.date}</span>
+                        <strong className="text-slate-800">{n.title}</strong>
+                        <p className="text-slate-600 mt-1 whitespace-pre-wrap">{n.content}</p>
+                      </div>
                     </div>
-                    <button onClick={() => handleDeleteNews(n.id)} className="text-red-500 ml-4 hover:underline">
+                    <button onClick={() => handleDeleteNews(n.id)} className="text-red-500 ml-4 hover:underline flex-shrink-0">
                       削除
                     </button>
                   </div>
@@ -608,46 +637,60 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* プロフィール項目リスト */}
+              {/* プロフィール項目リスト（画像アップロード対応） */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">プロフィール詳細カード一覧</label>
-                {config.profileInfo?.map((info: any, i: number) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="項目名 (例: 身長)"
-                      value={info.label}
-                      onChange={(e) => {
-                        const updated = [...config.profileInfo];
-                        updated[i].label = e.target.value;
-                        setConfig({ ...config, profileInfo: updated });
-                      }}
-                      className="w-1/3 p-2 border rounded-xl text-xs"
-                    />
-                    <input
-                      type="text"
-                      placeholder="値 (例: 148cm)"
-                      value={info.value}
-                      onChange={(e) => {
-                        const updated = [...config.profileInfo];
-                        updated[i].value = e.target.value;
-                        setConfig({ ...config, profileInfo: updated });
-                      }}
-                      className="flex-1 p-2 border rounded-xl text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setConfig({ ...config, profileInfo: config.profileInfo.filter((_: any, idx: number) => idx !== i) })}
-                      className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50"
-                    >
-                      削除
-                    </button>
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {config.profileInfo?.map((info: any, i: number) => (
+                    <div key={i} className="p-3 border rounded-xl bg-slate-50 space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="項目名 (例: 身長)"
+                          value={info.label}
+                          onChange={(e) => {
+                            const updated = [...config.profileInfo];
+                            updated[i].label = e.target.value;
+                            setConfig({ ...config, profileInfo: updated });
+                          }}
+                          className="w-1/3 p-2 border rounded-xl text-xs bg-white"
+                        />
+                        <input
+                          type="text"
+                          placeholder="値 (例: 148cm)"
+                          value={info.value}
+                          onChange={(e) => {
+                            const updated = [...config.profileInfo];
+                            updated[i].value = e.target.value;
+                            setConfig({ ...config, profileInfo: updated });
+                          }}
+                          className="flex-1 p-2 border rounded-xl text-xs bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setConfig({ ...config, profileInfo: config.profileInfo.filter((_: any, idx: number) => idx !== i) })}
+                          className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50 bg-white"
+                        >
+                          削除
+                        </button>
+                      </div>
+                      <ImageUploader
+                        label="アイコン・イメージ画像（任意）"
+                        value={info.imageUrl || ""}
+                        onChange={(url) => {
+                          const updated = [...config.profileInfo];
+                          updated[i].imageUrl = url;
+                          setConfig({ ...config, profileInfo: updated });
+                        }}
+                        folder="profile_icons"
+                      />
+                    </div>
+                  ))}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setConfig({ ...config, profileInfo: [...(config.profileInfo || []), { label: "", value: "" }] })}
-                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-1"
+                  onClick={() => setConfig({ ...config, profileInfo: [...(config.profileInfo || []), { label: "", value: "", imageUrl: "" }] })}
+                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-2"
                 >
                   + プロフィール項目を追加
                 </button>
@@ -763,43 +806,63 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* サポート返礼項目 */}
+              {/* サポート返礼項目（画像アップロード対応） */}
               <div>
                 <label className="text-xs font-bold text-slate-500 block mb-2">サポート返礼項目一覧</label>
-                {config.vipRewards?.map((rew: string, i: number) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <span className="w-8 flex items-center justify-center font-bold text-xs bg-pink-100 text-pink-600 rounded-lg">
-                      {i + 1}
-                    </span>
-                    <input
-                      type="text"
-                      value={rew}
-                      onChange={(e) => {
-                        const updated = [...config.vipRewards];
-                        updated[i] = e.target.value;
-                        setConfig({ ...config, vipRewards: updated });
-                      }}
-                      className="flex-1 p-2 border rounded-xl text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setConfig({ ...config, vipRewards: config.vipRewards.filter((_: any, idx: number) => idx !== i) })}
-                      className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50"
-                    >
-                      削除
-                    </button>
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {config.vipRewards?.map((rew: any, i: number) => {
+                    const text = typeof rew === "string" ? rew : rew.text;
+                    const imageUrl = typeof rew === "string" ? "" : rew.imageUrl;
+
+                    return (
+                      <div key={i} className="p-3 border rounded-xl bg-slate-50 space-y-2">
+                        <div className="flex gap-2 items-center">
+                          <span className="w-7 h-7 flex items-center justify-center font-bold text-xs bg-pink-100 text-pink-600 rounded-lg flex-shrink-0">
+                            {i + 1}
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="返礼内容 (例: 限定お礼ボイス)"
+                            value={text || ""}
+                            onChange={(e) => {
+                              const updated = [...config.vipRewards];
+                              updated[i] = { text: e.target.value, imageUrl: imageUrl || "" };
+                              setConfig({ ...config, vipRewards: updated });
+                            }}
+                            className="flex-1 p-2 border rounded-xl text-xs bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setConfig({ ...config, vipRewards: config.vipRewards.filter((_: any, idx: number) => idx !== i) })}
+                            className="text-red-500 text-xs px-2 py-1.5 border rounded-lg hover:bg-red-50 bg-white"
+                          >
+                            削除
+                          </button>
+                        </div>
+                        <ImageUploader
+                          label="特典イメージ・参考写真（任意）"
+                          value={imageUrl || ""}
+                          onChange={(url) => {
+                            const updated = [...config.vipRewards];
+                            updated[i] = { text: text || "", imageUrl: url };
+                            setConfig({ ...config, vipRewards: updated });
+                          }}
+                          folder="vip_rewards"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setConfig({ ...config, vipRewards: [...(config.vipRewards || []), ""] })}
-                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-1"
+                  onClick={() => setConfig({ ...config, vipRewards: [...(config.vipRewards || []), { text: "", imageUrl: "" }] })}
+                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-2"
                 >
                   + 返礼項目を追加
                 </button>
               </div>
 
-              {/* グッズ写真の追加・一覧 */}
+              {/* グッズ写真 */}
               <div className="pt-2 border-t">
                 <label className="text-xs font-bold text-slate-600 block mb-2">グッズ写真ギャラリー</label>
                 <div className="space-y-3">
@@ -936,46 +999,60 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 公約・特典 */}
+              {/* 公約・特典（画像アップロード対応） */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">公約・達成特典一覧</label>
-                {mission.rewards?.map((r: any, i: number) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="Step (例: 50%達成)"
-                      value={r.step}
-                      onChange={(e) => {
-                        const updated = [...mission.rewards];
-                        updated[i].step = e.target.value;
-                        setMission({ ...mission, rewards: updated });
-                      }}
-                      className="w-1/3 p-2 border rounded-xl text-xs"
-                    />
-                    <input
-                      type="text"
-                      placeholder="特典内容 (例: 新規歌ってみた投稿)"
-                      value={r.reward}
-                      onChange={(e) => {
-                        const updated = [...mission.rewards];
-                        updated[i].reward = e.target.value;
-                        setMission({ ...mission, rewards: updated });
-                      }}
-                      className="flex-1 p-2 border rounded-xl text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMission({ ...mission, rewards: mission.rewards.filter((_: any, idx: number) => idx !== i) })}
-                      className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50"
-                    >
-                      削除
-                    </button>
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {mission.rewards?.map((r: any, i: number) => (
+                    <div key={i} className="p-3 border rounded-xl bg-slate-50 space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Step (例: 50%達成)"
+                          value={r.step}
+                          onChange={(e) => {
+                            const updated = [...mission.rewards];
+                            updated[i].step = e.target.value;
+                            setMission({ ...mission, rewards: updated });
+                          }}
+                          className="w-1/3 p-2 border rounded-xl text-xs bg-white"
+                        />
+                        <input
+                          type="text"
+                          placeholder="特典内容 (例: 新規歌ってみた投稿)"
+                          value={r.reward}
+                          onChange={(e) => {
+                            const updated = [...mission.rewards];
+                            updated[i].reward = e.target.value;
+                            setMission({ ...mission, rewards: updated });
+                          }}
+                          className="flex-1 p-2 border rounded-xl text-xs bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMission({ ...mission, rewards: mission.rewards.filter((_: any, idx: number) => idx !== i) })}
+                          className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50 bg-white"
+                        >
+                          削除
+                        </button>
+                      </div>
+                      <ImageUploader
+                        label="特典ラフ・告知画像（任意）"
+                        value={r.imageUrl || ""}
+                        onChange={(url) => {
+                          const updated = [...mission.rewards];
+                          updated[i].imageUrl = url;
+                          setMission({ ...mission, rewards: updated });
+                        }}
+                        folder="mission_rewards"
+                      />
+                    </div>
+                  ))}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setMission({ ...mission, rewards: [...(mission.rewards || []), { step: "", reward: "" }] })}
-                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-1"
+                  onClick={() => setMission({ ...mission, rewards: [...(mission.rewards || []), { step: "", reward: "", imageUrl: "" }] })}
+                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-2"
                 >
                   + 公約・特典を追加
                 </button>
