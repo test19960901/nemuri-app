@@ -3,7 +3,6 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Firebaseの設定（ご自身のプロジェクトの値を入力してください）
 const firebaseConfig = {
   apiKey: "AIzaSyBBY5F2w9HoOWbEcSJ_V1CfxoDyFl6ZKhs",
   authDomain: "nemuri-app.firebaseapp.com",
