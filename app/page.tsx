@@ -14,7 +14,7 @@ import {
   getDoc,
   serverTimestamp
 } from "firebase/firestore";
-import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLink, X, Sparkles, CheckCircle2 } from "lucide-react";
+import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLink, X, Sparkles, CheckCircle2, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -76,10 +76,10 @@ export default function App() {
   const [msgName, setMsgName] = useState("");
   const [msgText, setMsgText] = useState("");
 
-  // 1日1回制限用ステート
+  // 1日1回制限用
   const [lastGachaDate, setLastGachaDate] = useState<string>("");
 
-  // ガチャ当選モーダル用ステート
+  // ガチャ当選モーダル用
   const [wonCard, setWonCard] = useState<{ card: any; isNew: boolean } | null>(null);
 
   useEffect(() => {
@@ -87,7 +87,6 @@ export default function App() {
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUid(user.uid);
-        // Firestoreから前回のガチャ日を取得
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists() && userDoc.data().lastGachaDate) {
@@ -99,7 +98,6 @@ export default function App() {
       }
     });
 
-    // LocalStorageから獲得カード＆最終ガチャ日を復元
     try {
       const storedCards = localStorage.getItem("nemuri_cards");
       if (storedCards) setUnlockedCards(JSON.parse(storedCards));
@@ -144,12 +142,22 @@ export default function App() {
     };
   }, []);
 
-  // 今日のガチャをすでに引いているかどうかの判定
+  // 判定フラグ
   const todayStr = getTodayString();
   const hasPulledToday = lastGachaDate === todayStr;
+  
+  // 未所持カード一覧
+  const unobtainedCards = cards.filter((c) => !unlockedCards.includes(c.cardNumber));
+  // 全種コンプリート判定
+  const isCompleted = cards.length > 0 && unobtainedCards.length === 0;
 
-  // --- ランダムガチャ抽選ロジック (1日1回制限付き) ---
+  // --- 重複なし・1日1回ランダムガチャ ---
   const handleGacha = async () => {
+    if (isCompleted) {
+      alert("全種類のカードをコンプリートしています！おめでとうございます！");
+      return;
+    }
+
     if (hasPulledToday) {
       alert("本日のガチャはすでに引いています。明日また挑戦してね！");
       return;
@@ -172,28 +180,16 @@ export default function App() {
       return;
     }
 
-    // 1. 未所持カードを抽出
-    const unobtainedCards = cards.filter((c) => !unlockedCards.includes(c.cardNumber));
+    // ★ 未所持カードの中からのみ完全ランダムで選定（重複・ダブりの完全排除）
+    const randomIndex = Math.floor(Math.random() * unobtainedCards.length);
+    const chosenCard = unobtainedCards[randomIndex];
 
-    let chosenCard: any = null;
-    let isNew = false;
+    // 新規カードとしてアンロック
+    const newUnlocked = [...unlockedCards, chosenCard.cardNumber];
+    setUnlockedCards(newUnlocked);
+    localStorage.setItem("nemuri_cards", JSON.stringify(newUnlocked));
 
-    if (unobtainedCards.length > 0) {
-      const randomIndex = Math.floor(Math.random() * unobtainedCards.length);
-      chosenCard = unobtainedCards[randomIndex];
-      isNew = true;
-
-      const newUnlocked = [...unlockedCards, chosenCard.cardNumber];
-      setUnlockedCards(newUnlocked);
-      localStorage.setItem("nemuri_cards", JSON.stringify(newUnlocked));
-    } else {
-      // コンプ済みの場合は全体からランダム
-      const randomIndex = Math.floor(Math.random() * cards.length);
-      chosenCard = cards[randomIndex];
-      isNew = false;
-    }
-
-    // 2. 本日のガチャ実施日を保存（LocalStorage & Firestore）
+    // 本日のガチャ実施日を更新（1日1回制限）
     setLastGachaDate(todayStr);
     localStorage.setItem("nemuri_last_gacha_date", todayStr);
 
@@ -205,9 +201,9 @@ export default function App() {
       }
     }
 
-    // 紙吹雪＆当選モーダル
+    // 紙吹雪＆当選演出モーダル表示
     confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
-    setWonCard({ card: chosenCard, isNew });
+    setWonCard({ card: chosenCard, isNew: true });
     setGachaInput("");
   };
 
@@ -491,7 +487,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* COLLECTION（1日1回限定ガチャ） */}
+              {/* COLLECTION（重複なし・1日1回限定ガチャ） */}
               {tab === "COLLECTION" && (
                 <div className="p-6 space-y-6">
                   <div className="bg-pink-50 border border-pink-100 rounded-2xl p-4 text-center space-y-3 shadow-sm">
@@ -500,34 +496,49 @@ export default function App() {
                         <img src={config.avatarImage} className="w-10 h-10 rounded-full border border-pink-200 object-cover" alt="mini avatar" />
                       )}
                       <div className="bg-white px-3 py-1.5 rounded-2xl rounded-bl-none text-xs font-bold text-pink-600 shadow-sm">
-                        {config.collectionBubbleText || "ネムリンのイラストカードをコンプしよう！"}
+                        {isCompleted
+                          ? "すごい！全種類のイラストカードをコンプリートしました！🎉"
+                          : (config.collectionBubbleText || "ネムリンのイラストカードをコンプしよう！")}
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <input
                         type="text"
-                        placeholder={hasPulledToday ? "本日は獲得済みです（また明日！）" : (config.collectionGachaPlaceholder || "合言葉を入力 (例: nemuri)")}
+                        placeholder={
+                          isCompleted
+                            ? "全カードコンプリート済みです！"
+                            : hasPulledToday
+                            ? "本日は獲得済みです（また明日！）"
+                            : (config.collectionGachaPlaceholder || "合言葉を入力 (例: nemuri)")
+                        }
                         value={gachaInput}
-                        disabled={hasPulledToday}
+                        disabled={hasPulledToday || isCompleted}
                         onChange={e => setGachaInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && !hasPulledToday && handleGacha()}
+                        onKeyDown={e => e.key === "Enter" && !hasPulledToday && !isCompleted && handleGacha()}
                         className={`w-full text-center text-sm p-2 rounded-xl border outline-none transition ${
-                          hasPulledToday
+                          hasPulledToday || isCompleted
                             ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                             : "bg-white border-pink-200 focus:ring-2 focus:ring-pink-300"
                         }`}
                       />
                       <button
                         onClick={handleGacha}
-                        disabled={hasPulledToday}
+                        disabled={hasPulledToday || isCompleted}
                         className={`w-full py-2.5 font-black text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 ${
-                          hasPulledToday
+                          isCompleted
+                            ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-white cursor-default shadow-md"
+                            : hasPulledToday
                             ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
                             : "bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md active:scale-95"
                         }`}
                       >
-                        {hasPulledToday ? (
+                        {isCompleted ? (
+                          <>
+                            <Trophy className="w-4 h-4" />
+                            <span>全カードコンプリート達成！</span>
+                          </>
+                        ) : hasPulledToday ? (
                           <>
                             <CheckCircle2 className="w-4 h-4 text-slate-500" />
                             <span>本日分は獲得済みです（毎日0時更新）</span>
@@ -535,7 +546,7 @@ export default function App() {
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4" />
-                            <span>{config.collectionButtonText || "ガチャをひく (1日1回)"}</span>
+                            <span>{config.collectionButtonText || "ガチャをひく (1日1回・ダブりなし)"}</span>
                           </>
                         )}
                       </button>
@@ -544,6 +555,11 @@ export default function App() {
                     {/* 所持状況インジケーター */}
                     <div className="text-[11px] font-bold text-slate-500 pt-1">
                       集めたカード: <span className="text-pink-600">{unlockedCards.length}</span> / {cards.length} 枚
+                      {unobtainedCards.length > 0 && (
+                        <span className="text-slate-400 ml-1.5 font-normal">
+                          (残り未所持: {unobtainedCards.length}枚)
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -621,7 +637,7 @@ export default function App() {
               >
                 <div className="space-y-1">
                   <span className="text-xs font-black uppercase tracking-wider bg-pink-100 text-pink-600 py-1 px-3 rounded-full inline-block">
-                    {wonCard.isNew ? "🎉 NEW CARD GET!" : "✨ ALREADY OWNED"}
+                    🎉 NEW CARD GET!
                   </span>
                   <h3 className="font-bold text-slate-800 text-sm">
                     No.{wonCard.card.cardNumber} {wonCard.card.title}
