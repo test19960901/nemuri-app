@@ -17,7 +17,6 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// 共通画像アップローダーコンポーネント
 function ImageUploader({
   label,
   value,
@@ -104,7 +103,6 @@ export default function AdminDashboard() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<"HOME" | "PROFILE" | "VIP" | "MISSION" | "COLLECTION">("HOME");
 
-  // Config
   const [config, setConfig] = useState<any>({
     name: "百合加護ねむり",
     catchphrase: "あなたの夜にそっと寄り添う、安眠系VTuber。",
@@ -121,17 +119,15 @@ export default function AdminDashboard() {
     collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
     collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
     collectionButtonText: "ガチャをひく",
-    gachaKeywords: ["nemuri", "おやすみ"] // ガチャ用合言葉リスト
+    gachaKeywords: ["nemuri", "おやすみ", "ねむりん"]
   });
 
-  // News (HOME)
   const [newsList, setNewsList] = useState<any[]>([]);
   const [newNewsTitle, setNewNewsTitle] = useState("");
   const [newNewsDate, setNewNewsDate] = useState("");
   const [newNewsContent, setNewNewsContent] = useState("");
   const [newNewsImageUrl, setNewNewsImageUrl] = useState("");
 
-  // Timeline (PROFILE)
   const [timelineList, setTimelineList] = useState<any[]>([]);
   const [newTlDate, setNewTlDate] = useState("");
   const [newTlTitle, setNewTlTitle] = useState("");
@@ -139,13 +135,11 @@ export default function AdminDashboard() {
   const [newTlMediaUrl, setNewTlMediaUrl] = useState("");
   const [newTlOrder, setNewTlOrder] = useState(1);
 
-  // Supporters (VIP)
   const [supportersList, setSupportersList] = useState<any[]>([]);
   const [newSupName, setNewSupName] = useState("");
   const [newSupAvatarUrl, setNewSupAvatarUrl] = useState("");
   const [newSupOrder, setNewSupOrder] = useState(1);
 
-  // Mission
   const [mission, setMission] = useState<any>({
     title: "",
     subTitle: "",
@@ -154,7 +148,6 @@ export default function AdminDashboard() {
     rewards: []
   });
 
-  // Cards (COLLECTION)
   const [cards, setCards] = useState<any[]>([]);
   const [newCardNumber, setNewCardNumber] = useState("");
   const [newCardTitle, setNewCardTitle] = useState("");
@@ -230,7 +223,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- News ---
   const handleAddNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNewsTitle || !newNewsDate) return;
@@ -262,7 +254,6 @@ export default function AdminDashboard() {
     setNewsList(newsList.filter((n) => n.id !== id));
   };
 
-  // --- Timeline ---
   const handleAddTimeline = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -302,7 +293,6 @@ export default function AdminDashboard() {
     setTimelineList(timelineList.filter((t) => t.id !== id));
   };
 
-  // --- Supporter ---
   const handleAddSupporter = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -332,7 +322,6 @@ export default function AdminDashboard() {
     setSupportersList(supportersList.filter((s) => s.id !== id));
   };
 
-  // --- Cards ---
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCardNumber || !newCardTitle) {
@@ -421,7 +410,6 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* ヘッダー */}
         <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
           <div>
             <h1 className="font-bold text-xl text-slate-800">百合加護ねむり アプリ管理ポータル</h1>
@@ -437,7 +425,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* タブナビゲーション */}
         <div className="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
           {(["HOME", "PROFILE", "VIP", "MISSION", "COLLECTION"] as const).map((tab) => (
             <button
@@ -452,7 +439,6 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* ---------------- 1. HOME 設定 ---------------- */}
         {activeTab === "HOME" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
@@ -494,7 +480,6 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* SNSリンク */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">SNS / 外部リンク一覧</label>
                 {config.snsLinks?.map((sns: any, i: number) => (
@@ -544,7 +529,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* お知らせ管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">HOME：お知らせ (News) 管理</h2>
               <form onSubmit={handleAddNews} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
@@ -573,14 +557,12 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewNewsContent(e.target.value)}
                   className="w-full p-2 border rounded-lg text-xs h-20"
                 />
-                
                 <ImageUploader
                   label="お知らせの添付画像（任意）"
                   value={newNewsImageUrl}
                   onChange={setNewNewsImageUrl}
                   folder="news"
                 />
-
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700">
                   お知らせを追加
                 </button>
@@ -609,7 +591,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ---------------- 2. PROFILE 設定 ---------------- */}
         {activeTab === "PROFILE" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
@@ -635,7 +616,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* プロフィール項目リスト */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">プロフィール詳細カード一覧</label>
                 <div className="space-y-3">
@@ -699,7 +679,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* 活動履歴 (HISTORY) 年表管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">PROFILE：活動履歴 (HISTORY) 年表管理</h2>
               <form onSubmit={handleAddTimeline} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
@@ -789,7 +768,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-{/* ---------------- 3. VIP 設定 ---------------- */}
         {activeTab === "VIP" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
@@ -816,7 +794,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* サポート返礼項目 */}
               <div>
                 <label className="text-xs font-bold text-slate-500 block mb-2">サポート返礼項目一覧</label>
                 <div className="space-y-3">
@@ -872,7 +849,6 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* グッズ写真 */}
               <div className="pt-2 border-t">
                 <label className="text-xs font-bold text-slate-600 block mb-2">グッズ写真ギャラリー</label>
                 <div className="space-y-3">
@@ -912,7 +888,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* 歴代サポーター */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">VIP：歴代サポーター管理</h2>
               <form onSubmit={handleAddSupporter} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
@@ -965,7 +940,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ---------------- 4. MISSION 設定 ---------------- */}
         {activeTab === "MISSION" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
@@ -1009,7 +983,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 公約・特典 */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">公約・達成特典一覧</label>
                 <div className="space-y-3">
@@ -1075,7 +1048,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ---------------- 5. COLLECTION 設定 ---------------- */}
         {activeTab === "COLLECTION" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
@@ -1111,7 +1083,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ガチャ解禁用合言葉（複数登録可能） */}
               <div className="pt-2 border-t">
                 <label className="text-xs font-bold text-slate-600 block mb-1">
                   🔑 ガチャ解禁用合言葉一覧（どれを入力してもガチャが引けます）
@@ -1160,7 +1131,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* ガチャカード管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">COLLECTION：排出カードプール管理 ({cards.length}枚)</h2>
               <form onSubmit={handleAddCard} className="bg-slate-50 p-4 rounded-xl space-y-3 border">

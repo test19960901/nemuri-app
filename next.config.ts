@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "export",
-  trailingSlash: true, // ← これを追加
+  trailingSlash: true,
   images: {
     unoptimized: true,
   },

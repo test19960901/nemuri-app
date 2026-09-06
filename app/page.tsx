@@ -18,7 +18,6 @@ import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLi
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
-// 各タブのダミー初期データ（単一項目は1個、リスト系は3個まで設定）
 const DEFAULT_CONFIG = {
   name: "百合加護ねむり",
   catchphrase: "あなたの夜にそっと寄り添う、安眠系VTuber。",
@@ -54,7 +53,6 @@ const DEFAULT_CONFIG = {
   gachaKeywords: ["nemuri", "おやすみ", "ねむりん"]
 };
 
-// ミッションのダミー初期データ
 const DEFAULT_MISSION = {
   title: "1st Anniversary 記念イベント",
   subTitle: "みんなで新衣装と記念配信を目指そう！",
@@ -67,7 +65,6 @@ const DEFAULT_MISSION = {
   ]
 };
 
-// お知らせのダミー初期データ（3件）
 const DEFAULT_NEWS = [
   {
     id: "dummy-news-1",
@@ -92,7 +89,6 @@ const DEFAULT_NEWS = [
   }
 ];
 
-// 年表のダミー初期データ（3件）
 const DEFAULT_TIMELINE = [
   {
     id: "dummy-tl-1",
@@ -120,7 +116,6 @@ const DEFAULT_TIMELINE = [
   }
 ];
 
-// サポーターのダミー初期データ（3件）
 const DEFAULT_SUPPORTERS = [
   {
     id: "dummy-sup-1",
@@ -142,7 +137,6 @@ const DEFAULT_SUPPORTERS = [
   }
 ];
 
-// ガチャカードのダミー初期データ（3枚）
 const DEFAULT_CARDS = [
   {
     id: "dummy-card-1",
@@ -164,7 +158,6 @@ const DEFAULT_CARDS = [
   }
 ];
 
-// 応援メッセージのダミー初期データ（3件）
 const DEFAULT_MESSAGES = [
   {
     id: "dummy-msg-1",
@@ -183,7 +176,6 @@ const DEFAULT_MESSAGES = [
   }
 ];
 
-// 今日の日付文字列（YYYY-MM-DD）を取得する関数
 const getTodayString = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -195,8 +187,7 @@ const getTodayString = () => {
 export default function App() {
   const [tab, setTab] = useState("HOME");
   const [uid, setUid] = useState<string | null>(null);
-  
-  // Data States（初期値にダミーデータを設定）
+
   const [config, setConfig] = useState<any>(DEFAULT_CONFIG);
   const [news, setNews] = useState<any[]>(DEFAULT_NEWS);
   const [timeline, setTimeline] = useState<any[]>(DEFAULT_TIMELINE);
@@ -204,8 +195,7 @@ export default function App() {
   const [mission, setMission] = useState<any>(DEFAULT_MISSION);
   const [messages, setMessages] = useState<any[]>(DEFAULT_MESSAGES);
   const [cards, setCards] = useState<any[]>(DEFAULT_CARDS);
-  
-  // UI States
+
   const [openNews, setOpenNews] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [unlockedCards, setUnlockedCards] = useState<number[]>([]);
@@ -213,10 +203,7 @@ export default function App() {
   const [msgName, setMsgName] = useState("");
   const [msgText, setMsgText] = useState("");
 
-  // 1日1回制限用
   const [lastGachaDate, setLastGachaDate] = useState<string>("");
-
-  // ガチャ当選モーダル用
   const [wonCard, setWonCard] = useState<{ card: any; isNew: boolean } | null>(null);
 
   useEffect(() => {
@@ -245,7 +232,6 @@ export default function App() {
       console.warn(e);
     }
 
-    // Firestoreデータが存在すればダミーから上書き
     const unsubConfig = onSnapshot(doc(db, "app_config", "global"), (d) => {
       if (d.exists()) setConfig((prev: any) => ({ ...prev, ...d.data() }));
     });
@@ -358,11 +344,10 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 selection:bg-pink-200 font-sans">
       <main className="w-full max-w-[430px] bg-white min-h-screen shadow-2xl relative pb-20 overflow-x-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
               
-              {/* HOME */}
               {tab === "HOME" && (
                 <div className="space-y-6 pb-6">
                   <div className="relative">
@@ -428,7 +413,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* PROFILE */}
               {tab === "PROFILE" && (
                 <div className="p-6 space-y-8">
                   <h2 className="text-center text-xl font-black tracking-wider">{config.profileTitle || "PROFILE"}</h2>
@@ -475,7 +459,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* VIP */}
               {tab === "VIP" && (
                 <div className="p-6 space-y-8">
                   <h2 className="text-center text-xl font-black tracking-wider">{config.vipTitle || "サポート返礼"}</h2>
@@ -532,7 +515,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* MISSION */}
               {tab === "MISSION" && (
                 <div className="p-6 space-y-6">
                   {mission && (
@@ -595,7 +577,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* COLLECTION（重複なし・1日1回限定ガチャ） */}
               {tab === "COLLECTION" && (
                 <div className="p-6 space-y-6">
                   <div className="bg-pink-50 border border-pink-100 rounded-2xl p-4 text-center space-y-3 shadow-sm">
@@ -660,7 +641,6 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* 所持状況インジケーター */}
                     <div className="text-[11px] font-bold text-slate-500 pt-1">
                       集めたカード: <span className="text-pink-600">{unlockedCards.length}</span> / {cards.length} 枚
                       {unobtainedCards.length > 0 && (
@@ -671,7 +651,6 @@ export default function App() {
                     </div>
                   </div>
                   
-                  {/* カードコレクション一覧 */}
                   <div className="grid grid-cols-3 gap-2">
                     {cards.map(card => {
                       const isUnlocked = unlockedCards.includes(card.cardNumber);
@@ -708,21 +687,28 @@ export default function App() {
           </AnimatePresence>
         </div>
 
-        {/* ナビゲーションバー */}
-        <nav className="absolute bottom-0 left-0 w-full h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center z-40">
+        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
           {[
             { id: "HOME", icon: Home }, { id: "PROFILE", icon: User },
             { id: "VIP", icon: Crown }, { id: "MISSION", icon: Flag },
             { id: "COLLECTION", icon: Gift }
           ].map((item) => (
-            <button key={item.id} onClick={() => setTab(item.id)} className={`flex flex-col items-center w-16 py-1 transition-colors ${tab === item.id ? "text-pink-500 font-bold" : "text-slate-400 hover:text-slate-600"}`}>
+            <button
+              key={item.id}
+              onClick={() => {
+                setTab(item.id);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className={`flex flex-col items-center justify-center w-16 py-1 transition-colors ${
+                tab === item.id ? "text-pink-500 font-bold" : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
               <item.icon className="w-5 h-5 mb-0.5" />
-              <span className="text-[9px]">{item.id}</span>
+              <span className="text-[9px] tracking-tight">{item.id}</span>
             </button>
           ))}
         </nav>
 
-        {/* ガチャ当選演出モーダル */}
         <AnimatePresence>
           {wonCard && (
             <motion.div
@@ -767,7 +753,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* ライトボックス（画像拡大表示） */}
         <AnimatePresence>
           {lightbox && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
