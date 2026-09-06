@@ -119,7 +119,8 @@ export default function AdminDashboard() {
     goodsImages: [],
     collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
     collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
-    collectionButtonText: "ガチャをひく"
+    collectionButtonText: "ガチャをひく",
+    gachaKeywords: ["nemuri", "おやすみ"] // ガチャ用合言葉リスト
   });
 
   // News (HOME)
@@ -156,7 +157,6 @@ export default function AdminDashboard() {
   const [cards, setCards] = useState<any[]>([]);
   const [newCardNumber, setNewCardNumber] = useState("");
   const [newCardTitle, setNewCardTitle] = useState("");
-  const [newCardKeyword, setNewCardKeyword] = useState("");
   const [newCardImageUrl, setNewCardImageUrl] = useState("");
   const [isAddingCard, setIsAddingCard] = useState(false);
 
@@ -334,8 +334,8 @@ export default function AdminDashboard() {
   // --- Cards ---
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCardNumber || !newCardTitle || !newCardKeyword) {
-      return alert("No・カード名・合言葉を入力してください");
+    if (!newCardNumber || !newCardTitle) {
+      return alert("No・カード名を入力してください");
     }
     if (!newCardImageUrl) {
       return alert("画像を選択してください");
@@ -347,21 +347,19 @@ export default function AdminDashboard() {
       const docRef = await addDoc(collection(db, "cards"), {
         cardNumber,
         title: newCardTitle,
-        keyword: newCardKeyword,
         imageUrl: newCardImageUrl,
         createdAt: serverTimestamp()
       });
 
       setCards(
         (prev) =>
-          [...prev, { id: docRef.id, cardNumber, title: newCardTitle, keyword: newCardKeyword, imageUrl: newCardImageUrl }].sort(
+          [...prev, { id: docRef.id, cardNumber, title: newCardTitle, imageUrl: newCardImageUrl }].sort(
             (a, b) => a.cardNumber - b.cardNumber
           )
       );
 
       setNewCardNumber("");
       setNewCardTitle("");
-      setNewCardKeyword("");
       setNewCardImageUrl("");
       alert("カードを追加しました！");
     } catch (err: any) {
@@ -545,7 +543,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* お知らせ管理（画像アップロード対応） */}
+            {/* お知らせ管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">HOME：お知らせ (News) 管理</h2>
               <form onSubmit={handleAddNews} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
@@ -575,7 +573,6 @@ export default function AdminDashboard() {
                   className="w-full p-2 border rounded-lg text-xs h-20"
                 />
                 
-                {/* お知らせ用画像添付 */}
                 <ImageUploader
                   label="お知らせの添付画像（任意）"
                   value={newNewsImageUrl}
@@ -637,7 +634,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* プロフィール項目リスト（画像アップロード対応） */}
+              {/* プロフィール項目リスト */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">プロフィール詳細カード一覧</label>
                 <div className="space-y-3">
@@ -806,7 +803,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* サポート返礼項目（画像アップロード対応） */}
+              {/* サポート返礼項目 */}
               <div>
                 <label className="text-xs font-bold text-slate-500 block mb-2">サポート返礼項目一覧</label>
                 <div className="space-y-3">
@@ -999,7 +996,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 公約・特典（画像アップロード対応） */}
+              {/* 公約・特典 */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">公約・達成特典一覧</label>
                 <div className="space-y-3">
@@ -1069,7 +1066,8 @@ export default function AdminDashboard() {
         {activeTab === "COLLECTION" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-              <h2 className="font-bold text-base border-b pb-2 text-slate-800">COLLECTION：文言カスタマイズ</h2>
+              <h2 className="font-bold text-base border-b pb-2 text-slate-800">COLLECTION：文言＆解禁用合言葉設定</h2>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">吹き出しメッセージ</label>
@@ -1099,20 +1097,65 @@ export default function AdminDashboard() {
                   />
                 </div>
               </div>
-              <button onClick={saveConfig} className="bg-pink-500 text-white px-5 py-2 rounded-xl font-bold text-sm shadow hover:bg-pink-600 transition">
-                文言設定を保存
+
+              {/* ガチャ解禁用合言葉（複数登録可能） */}
+              <div className="pt-2 border-t">
+                <label className="text-xs font-bold text-slate-600 block mb-1">
+                  🔑 ガチャ解禁用合言葉一覧（どれを入力してもガチャが引けます）
+                </label>
+                <p className="text-[11px] text-slate-400 mb-2">大文字小文字は自動で区別なく判定されます。</p>
+                <div className="space-y-2">
+                  {(config.gachaKeywords || ["nemuri"]).map((kw: string, i: number) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="合言葉 (例: nemuri)"
+                        value={kw}
+                        onChange={(e) => {
+                          const updated = [...(config.gachaKeywords || [])];
+                          updated[i] = e.target.value;
+                          setConfig({ ...config, gachaKeywords: updated });
+                        }}
+                        className="flex-1 p-2 border rounded-xl text-xs bg-slate-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setConfig({
+                            ...config,
+                            gachaKeywords: config.gachaKeywords.filter((_: any, idx: number) => idx !== i)
+                          })
+                        }
+                        className="text-red-500 text-xs px-2 py-1.5 border rounded-lg hover:bg-red-50"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ ...config, gachaKeywords: [...(config.gachaKeywords || []), ""] })}
+                    className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-1"
+                  >
+                    + 合言葉を追加
+                  </button>
+                </div>
+              </div>
+
+              <button onClick={saveConfig} className="bg-pink-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-pink-600 transition">
+                COLLECTION設定を保存
               </button>
             </div>
 
             {/* ガチャカード管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-              <h2 className="font-bold text-base border-b pb-2 text-slate-800">COLLECTION：カード登録・削除 (無制限)</h2>
+              <h2 className="font-bold text-base border-b pb-2 text-slate-800">COLLECTION：排出カードプール管理 ({cards.length}枚)</h2>
               <form onSubmit={handleAddCard} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
                 <h3 className="font-bold text-xs text-slate-700">新しいカードの追加</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     type="number"
-                    placeholder="No. (例: 1)"
+                    placeholder="カードNo. (例: 1)"
                     value={newCardNumber}
                     onChange={(e) => setNewCardNumber(e.target.value)}
                     required
@@ -1123,14 +1166,6 @@ export default function AdminDashboard() {
                     placeholder="カード名 (例: 桜の下で)"
                     value={newCardTitle}
                     onChange={(e) => setNewCardTitle(e.target.value)}
-                    required
-                    className="p-2 border rounded-lg text-xs"
-                  />
-                  <input
-                    type="text"
-                    placeholder="解禁用合言葉 (例: sakura)"
-                    value={newCardKeyword}
-                    onChange={(e) => setNewCardKeyword(e.target.value)}
                     required
                     className="p-2 border rounded-lg text-xs"
                   />
@@ -1150,7 +1185,7 @@ export default function AdminDashboard() {
                     isAddingCard ? "opacity-50 cursor-not-allowed" : "hover:bg-pink-600"
                   }`}
                 >
-                  {isAddingCard ? "カードを追加中..." : "カードを追加する"}
+                  {isAddingCard ? "カードを追加中..." : "カードをプールに追加する"}
                 </button>
               </form>
 
@@ -1161,7 +1196,6 @@ export default function AdminDashboard() {
                     <span className="font-bold text-xs text-slate-800">
                       No.{c.cardNumber} {c.title}
                     </span>
-                    <span className="text-[10px] text-pink-500 mt-0.5">合言葉: {c.keyword}</span>
                     <button
                       onClick={() => handleDeleteCard(c.id)}
                       className="mt-2 text-red-500 text-[11px] font-bold border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 w-full"

@@ -3,8 +3,18 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { collection, doc, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
-import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLink, X } from "lucide-react";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  addDoc,
+  setDoc,
+  getDoc,
+  serverTimestamp
+} from "firebase/firestore";
+import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLink, X, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -32,7 +42,17 @@ const DEFAULT_CONFIG = {
   goodsImages: [],
   collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
   collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
-  collectionButtonText: "ガチャをひく"
+  collectionButtonText: "ガチャをひく",
+  gachaKeywords: ["nemuri"]
+};
+
+// 今日の日付文字列（YYYY-MM-DD）を取得する関数
+const getTodayString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${date}`;
 };
 
 export default function App() {
@@ -56,15 +76,36 @@ export default function App() {
   const [msgName, setMsgName] = useState("");
   const [msgText, setMsgText] = useState("");
 
+  // 1日1回制限用ステート
+  const [lastGachaDate, setLastGachaDate] = useState<string>("");
+
+  // ガチャ当選モーダル用ステート
+  const [wonCard, setWonCard] = useState<{ card: any; isNew: boolean } | null>(null);
+
   useEffect(() => {
     signInAnonymously(auth).catch(console.error);
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (user) setUid(user.uid);
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUid(user.uid);
+        // Firestoreから前回のガチャ日を取得
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists() && userDoc.data().lastGachaDate) {
+            setLastGachaDate(userDoc.data().lastGachaDate);
+          }
+        } catch (e) {
+          console.warn("ユーザー情報取得スキップ:", e);
+        }
+      }
     });
 
+    // LocalStorageから獲得カード＆最終ガチャ日を復元
     try {
       const storedCards = localStorage.getItem("nemuri_cards");
       if (storedCards) setUnlockedCards(JSON.parse(storedCards));
+
+      const storedDate = localStorage.getItem("nemuri_last_gacha_date");
+      if (storedDate) setLastGachaDate(storedDate);
     } catch (e) {
       console.warn(e);
     }
@@ -103,23 +144,70 @@ export default function App() {
     };
   }, []);
 
-  const handleGacha = () => {
-    const input = gachaInput.trim().toLowerCase();
-    const matchedCard = cards.find(c => c.keyword && c.keyword.trim().toLowerCase() === input);
-    
-    if (matchedCard) {
-      if (!unlockedCards.includes(matchedCard.cardNumber)) {
-        const newUnlocked = [...unlockedCards, matchedCard.cardNumber];
-        setUnlockedCards(newUnlocked);
-        localStorage.setItem("nemuri_cards", JSON.stringify(newUnlocked));
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        alert(`🎉 カード「${matchedCard.title}」を解放しました！`);
-      } else {
-        alert("すでに持っているカードです！");
-      }
-    } else {
-      alert("合言葉が違います。配信をチェックしてね！");
+  // 今日のガチャをすでに引いているかどうかの判定
+  const todayStr = getTodayString();
+  const hasPulledToday = lastGachaDate === todayStr;
+
+  // --- ランダムガチャ抽選ロジック (1日1回制限付き) ---
+  const handleGacha = async () => {
+    if (hasPulledToday) {
+      alert("本日のガチャはすでに引いています。明日また挑戦してね！");
+      return;
     }
+
+    const input = gachaInput.trim().toLowerCase();
+    if (!input) return;
+
+    if (cards.length === 0) {
+      alert("カードがまだ登録されていません。");
+      return;
+    }
+
+    // 合言葉判定
+    const validKeywords = (config.gachaKeywords || ["nemuri"]).map((k: string) => k.trim().toLowerCase());
+    const isValid = validKeywords.includes(input);
+
+    if (!isValid) {
+      alert("合言葉が違います。配信やSNSをチェックしてみてね！");
+      return;
+    }
+
+    // 1. 未所持カードを抽出
+    const unobtainedCards = cards.filter((c) => !unlockedCards.includes(c.cardNumber));
+
+    let chosenCard: any = null;
+    let isNew = false;
+
+    if (unobtainedCards.length > 0) {
+      const randomIndex = Math.floor(Math.random() * unobtainedCards.length);
+      chosenCard = unobtainedCards[randomIndex];
+      isNew = true;
+
+      const newUnlocked = [...unlockedCards, chosenCard.cardNumber];
+      setUnlockedCards(newUnlocked);
+      localStorage.setItem("nemuri_cards", JSON.stringify(newUnlocked));
+    } else {
+      // コンプ済みの場合は全体からランダム
+      const randomIndex = Math.floor(Math.random() * cards.length);
+      chosenCard = cards[randomIndex];
+      isNew = false;
+    }
+
+    // 2. 本日のガチャ実施日を保存（LocalStorage & Firestore）
+    setLastGachaDate(todayStr);
+    localStorage.setItem("nemuri_last_gacha_date", todayStr);
+
+    if (uid) {
+      try {
+        await setDoc(doc(db, "users", uid), { lastGachaDate: todayStr }, { merge: true });
+      } catch (e) {
+        console.warn("ガチャ実施日記録スキップ:", e);
+      }
+    }
+
+    // 紙吹雪＆当選モーダル
+    confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+    setWonCard({ card: chosenCard, isNew });
     setGachaInput("");
   };
 
@@ -403,7 +491,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* COLLECTION */}
+              {/* COLLECTION（1日1回限定ガチャ） */}
               {tab === "COLLECTION" && (
                 <div className="p-6 space-y-6">
                   <div className="bg-pink-50 border border-pink-100 rounded-2xl p-4 text-center space-y-3 shadow-sm">
@@ -415,18 +503,51 @@ export default function App() {
                         {config.collectionBubbleText || "ネムリンのイラストカードをコンプしよう！"}
                       </div>
                     </div>
-                    <input
-                      type="text"
-                      placeholder={config.collectionGachaPlaceholder || "合言葉を入力 (例: nemuri)"}
-                      value={gachaInput}
-                      onChange={e => setGachaInput(e.target.value)}
-                      className="w-full text-center text-sm p-2 rounded-xl border border-pink-200 outline-none"
-                    />
-                    <button onClick={handleGacha} className="w-full py-2.5 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition">
-                      {config.collectionButtonText || "ガチャをひく"}
-                    </button>
+
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder={hasPulledToday ? "本日は獲得済みです（また明日！）" : (config.collectionGachaPlaceholder || "合言葉を入力 (例: nemuri)")}
+                        value={gachaInput}
+                        disabled={hasPulledToday}
+                        onChange={e => setGachaInput(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && !hasPulledToday && handleGacha()}
+                        className={`w-full text-center text-sm p-2 rounded-xl border outline-none transition ${
+                          hasPulledToday
+                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                            : "bg-white border-pink-200 focus:ring-2 focus:ring-pink-300"
+                        }`}
+                      />
+                      <button
+                        onClick={handleGacha}
+                        disabled={hasPulledToday}
+                        className={`w-full py-2.5 font-black text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 ${
+                          hasPulledToday
+                            ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                            : "bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md active:scale-95"
+                        }`}
+                      >
+                        {hasPulledToday ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-slate-500" />
+                            <span>本日分は獲得済みです（毎日0時更新）</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>{config.collectionButtonText || "ガチャをひく (1日1回)"}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* 所持状況インジケーター */}
+                    <div className="text-[11px] font-bold text-slate-500 pt-1">
+                      集めたカード: <span className="text-pink-600">{unlockedCards.length}</span> / {cards.length} 枚
+                    </div>
                   </div>
                   
+                  {/* カードコレクション一覧 */}
                   <div className="grid grid-cols-3 gap-2">
                     {cards.length === 0 ? (
                       <p className="col-span-3 text-xs text-slate-400 text-center py-8">カードがまだ登録されていません</p>
@@ -434,11 +555,21 @@ export default function App() {
                       cards.map(card => {
                         const isUnlocked = unlockedCards.includes(card.cardNumber);
                         return (
-                          <div key={card.id} onClick={() => isUnlocked && setLightbox(card.imageUrl)} className={`aspect-[3/4] rounded-xl border flex flex-col items-center justify-center relative overflow-hidden transition-all ${isUnlocked ? 'bg-white border-pink-200 shadow-sm cursor-pointer hover:scale-105' : 'bg-slate-50 border-slate-200'}`}>
+                          <div
+                            key={card.id}
+                            onClick={() => isUnlocked && setLightbox(card.imageUrl)}
+                            className={`aspect-[3/4] rounded-xl border flex flex-col items-center justify-center relative overflow-hidden transition-all ${
+                              isUnlocked
+                                ? "bg-white border-pink-200 shadow-sm cursor-pointer hover:scale-105"
+                                : "bg-slate-50 border-slate-200"
+                            }`}
+                          >
                             {isUnlocked ? (
                               <>
                                 <img src={card.imageUrl} className="w-full h-full object-cover" alt={card.title} />
-                                <span className="absolute bottom-1 right-1 bg-black/50 text-white font-bold text-[9px] px-1.5 rounded-full">#{card.cardNumber}</span>
+                                <span className="absolute bottom-1 right-1 bg-black/50 text-white font-bold text-[9px] px-1.5 rounded-full">
+                                  #{card.cardNumber}
+                                </span>
                               </>
                             ) : (
                               <>
@@ -471,7 +602,52 @@ export default function App() {
           ))}
         </nav>
 
-        {/* ライトボックス（画像拡大モーダル） */}
+        {/* ガチャ当選演出モーダル */}
+        <AnimatePresence>
+          {wonCard && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-6 backdrop-blur-sm"
+              onClick={() => setWonCard(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.7, y: 30 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.8, y: 20 }}
+                className="bg-white rounded-3xl p-5 max-w-[320px] w-full text-center space-y-4 shadow-2xl border-4 border-pink-200 relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="space-y-1">
+                  <span className="text-xs font-black uppercase tracking-wider bg-pink-100 text-pink-600 py-1 px-3 rounded-full inline-block">
+                    {wonCard.isNew ? "🎉 NEW CARD GET!" : "✨ ALREADY OWNED"}
+                  </span>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    No.{wonCard.card.cardNumber} {wonCard.card.title}
+                  </h3>
+                </div>
+
+                <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-inner border border-slate-100 bg-slate-50 relative">
+                  <img
+                    src={wonCard.card.imageUrl}
+                    alt={wonCard.card.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setWonCard(null)}
+                  className="w-full py-2.5 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold text-xs rounded-xl shadow"
+                >
+                  コレクションに追加する
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ライトボックス（画像拡大表示） */}
         <AnimatePresence>
           {lightbox && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
