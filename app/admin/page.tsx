@@ -17,6 +17,76 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+// 共通画像アップローダーコンポーネント
+function ImageUploader({
+  label,
+  value,
+  onChange,
+  folder = "uploads"
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  folder?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      onChange(downloadUrl);
+    } catch (err: any) {
+      alert("アップロード失敗: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-slate-600 block">{label}</label>
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+        {value ? (
+          <img
+            src={value}
+            alt="Preview"
+            className="w-14 h-14 rounded-xl object-cover border border-slate-200 bg-slate-100 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] text-slate-400 flex-shrink-0">
+            No Img
+          </div>
+        )}
+        <div className="flex-1 w-full space-y-1">
+          <div className="flex gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              onChange={handleFileChange}
+              className="text-xs block w-full file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100"
+            />
+            {uploading && <span className="text-xs text-pink-500 font-bold self-center animate-pulse">送信中...</span>}
+          </div>
+          <input
+            type="text"
+            placeholder="または画像URLを直接入力"
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full p-2 border rounded-lg text-xs bg-slate-50 focus:bg-white"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
@@ -24,37 +94,31 @@ export default function AdminDashboard() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<"HOME" | "PROFILE" | "VIP" | "MISSION" | "COLLECTION">("HOME");
 
-  // Config (全体・HOME・PROFILE・VIP・COLLECTION設定)
+  // Config
   const [config, setConfig] = useState<any>({
     name: "百合加護ねむり",
     catchphrase: "あなたの夜にそっと寄り添う、安眠系VTuber。",
     headerImage: "",
     avatarImage: "",
-    snsLinks: [
-      { name: "YouTube", url: "https://youtube.com" },
-      { name: "X (Twitter)", url: "https://twitter.com" }
-    ],
+    snsLinks: [],
     profileTitle: "PROFILE",
     historyTitle: "HISTORY",
-    profileInfo: [
-      { label: "誕生日", value: "9月1日" },
-      { label: "ファンネーム", value: "ねむりんちゅ" }
-    ],
+    profileInfo: [],
     vipTitle: "サポート返礼",
-    vipRewards: ["限定お礼ボイス", "デジタル会員証", "限定イラストカード"],
+    vipRewards: [],
     goodsImages: [],
     collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
     collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
     collectionButtonText: "ガチャをひく"
   });
 
-  // News (HOME用)
+  // News (HOME)
   const [newsList, setNewsList] = useState<any[]>([]);
   const [newNewsTitle, setNewNewsTitle] = useState("");
   const [newNewsDate, setNewNewsDate] = useState("");
   const [newNewsContent, setNewNewsContent] = useState("");
 
-  // Timeline (PROFILE用)
+  // Timeline (PROFILE)
   const [timelineList, setTimelineList] = useState<any[]>([]);
   const [newTlDate, setNewTlDate] = useState("");
   const [newTlTitle, setNewTlTitle] = useState("");
@@ -62,7 +126,7 @@ export default function AdminDashboard() {
   const [newTlMediaUrl, setNewTlMediaUrl] = useState("");
   const [newTlOrder, setNewTlOrder] = useState(1);
 
-  // Supporters (VIP用)
+  // Supporters (VIP)
   const [supportersList, setSupportersList] = useState<any[]>([]);
   const [newSupName, setNewSupName] = useState("");
   const [newSupAvatarUrl, setNewSupAvatarUrl] = useState("");
@@ -70,19 +134,20 @@ export default function AdminDashboard() {
 
   // Mission
   const [mission, setMission] = useState<any>({
-    title: "1st Anniversary 記念イベント",
-    subTitle: "応援よろしくお願いします！",
+    title: "",
+    subTitle: "",
     currentPt: 0,
     targetPt: 100000,
-    rewards: [
-      { step: "Step 1", reward: "新衣装ラフ公開" },
-      { step: "Step 2", reward: "記念ボイス実装" }
-    ]
+    rewards: []
   });
 
-  // Cards (COLLECTION用)
+  // Cards (COLLECTION)
   const [cards, setCards] = useState<any[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [newCardNumber, setNewCardNumber] = useState("");
+  const [newCardTitle, setNewCardTitle] = useState("");
+  const [newCardKeyword, setNewCardKeyword] = useState("");
+  const [newCardImageUrl, setNewCardImageUrl] = useState("");
+  const [isAddingCard, setIsAddingCard] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -100,39 +165,29 @@ export default function AdminDashboard() {
 
   const loadAllData = async () => {
     try {
-      // 1. Config
       const confSnap = await getDoc(doc(db, "app_config", "global"));
-      if (confSnap.exists()) {
-        setConfig((prev: any) => ({ ...prev, ...confSnap.data() }));
-      }
+      if (confSnap.exists()) setConfig((prev: any) => ({ ...prev, ...confSnap.data() }));
 
-      // 2. Mission
       const misSnap = await getDoc(doc(db, "mission", "main"));
-      if (misSnap.exists()) {
-        setMission((prev: any) => ({ ...prev, ...misSnap.data() }));
-      }
+      if (misSnap.exists()) setMission((prev: any) => ({ ...prev, ...misSnap.data() }));
 
-      // 3. News
       const newsSnap = await getDocs(query(collection(db, "news"), orderBy("createdAt", "desc")));
-      setNewsList(newsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setNewsList(newsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      // 4. Timeline
       const tlSnap = await getDocs(query(collection(db, "timeline"), orderBy("order", "asc")));
-      setTimelineList(tlSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setTimelineList(tlSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      // 5. Supporters
       const supSnap = await getDocs(query(collection(db, "supporters"), orderBy("order", "asc")));
-      setSupportersList(supSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setSupportersList(supSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      // 6. Cards
       const cardsSnap = await getDocs(collection(db, "cards"));
       setCards(
         cardsSnap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
+          .map((d) => ({ id: d.id, ...d.data() }))
           .sort((a: any, b: any) => (a.cardNumber || 0) - (b.cardNumber || 0))
       );
     } catch (e) {
-      console.warn("データ取得エラー:", e);
+      console.warn("データ初期取得警告:", e);
     }
   };
 
@@ -148,7 +203,7 @@ export default function AdminDashboard() {
   const saveConfig = async () => {
     try {
       await setDoc(doc(db, "app_config", "global"), config, { merge: true });
-      alert("設定を保存しました！");
+      alert("一般設定を保存しました！");
     } catch (err: any) {
       alert("保存失敗: " + err.message);
     }
@@ -163,7 +218,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- News 操作 ---
+  // --- News ---
   const handleAddNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNewsTitle || !newNewsDate) return;
@@ -187,10 +242,10 @@ export default function AdminDashboard() {
   const handleDeleteNews = async (id: string) => {
     if (!confirm("削除しますか？")) return;
     await deleteDoc(doc(db, "news", id));
-    setNewsList(newsList.filter(n => n.id !== id));
+    setNewsList(newsList.filter((n) => n.id !== id));
   };
 
-  // --- Timeline 操作 ---
+  // --- Timeline ---
   const handleAddTimeline = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -201,11 +256,23 @@ export default function AdminDashboard() {
         mediaUrl: newTlMediaUrl,
         order: Number(newTlOrder)
       });
-      setTimelineList([...timelineList, { id: docRef.id, date: newTlDate, title: newTlTitle, mediaType: newTlMediaType, mediaUrl: newTlMediaUrl, order: Number(newTlOrder) }].sort((a, b) => a.order - b.order));
+      setTimelineList(
+        [
+          ...timelineList,
+          {
+            id: docRef.id,
+            date: newTlDate,
+            title: newTlTitle,
+            mediaType: newTlMediaType,
+            mediaUrl: newTlMediaUrl,
+            order: Number(newTlOrder)
+          }
+        ].sort((a, b) => a.order - b.order)
+      );
       setNewTlDate("");
       setNewTlTitle("");
       setNewTlMediaUrl("");
-      setNewTlOrder(prev => prev + 1);
+      setNewTlOrder((prev) => prev + 1);
       alert("年表項目を追加しました！");
     } catch (e: any) {
       alert(e.message);
@@ -215,10 +282,10 @@ export default function AdminDashboard() {
   const handleDeleteTimeline = async (id: string) => {
     if (!confirm("削除しますか？")) return;
     await deleteDoc(doc(db, "timeline", id));
-    setTimelineList(timelineList.filter(t => t.id !== id));
+    setTimelineList(timelineList.filter((t) => t.id !== id));
   };
 
-  // --- Supporter 操作 ---
+  // --- Supporter ---
   const handleAddSupporter = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -227,10 +294,15 @@ export default function AdminDashboard() {
         avatarUrl: newSupAvatarUrl,
         order: Number(newSupOrder)
       });
-      setSupportersList([...supportersList, { id: docRef.id, name: newSupName, avatarUrl: newSupAvatarUrl, order: Number(newSupOrder) }].sort((a, b) => a.order - b.order));
+      setSupportersList(
+        [
+          ...supportersList,
+          { id: docRef.id, name: newSupName, avatarUrl: newSupAvatarUrl, order: Number(newSupOrder) }
+        ].sort((a, b) => a.order - b.order)
+      );
       setNewSupName("");
       setNewSupAvatarUrl("");
-      setNewSupOrder(prev => prev + 1);
+      setNewSupOrder((prev) => prev + 1);
       alert("サポーターを追加しました！");
     } catch (e: any) {
       alert(e.message);
@@ -240,59 +312,54 @@ export default function AdminDashboard() {
   const handleDeleteSupporter = async (id: string) => {
     if (!confirm("削除しますか？")) return;
     await deleteDoc(doc(db, "supporters", id));
-    setSupportersList(supportersList.filter(s => s.id !== id));
+    setSupportersList(supportersList.filter((s) => s.id !== id));
   };
 
-  // --- ガチャカード操作 ---
-  const handleAddCard = async (e: React.FormEvent<HTMLFormElement>) => {
+  // --- ガチャカード ---
+  const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const fileInput = form.elements.namedItem("image") as HTMLInputElement;
-    const directUrlInput = (form.elements.namedItem("imageUrlDirect") as HTMLInputElement)?.value;
-    const file = fileInput?.files?.[0];
-    const cardNumber = Number((form.elements.namedItem("cardNumber") as HTMLInputElement).value);
-    const title = (form.elements.namedItem("title") as HTMLInputElement).value;
-    const keyword = (form.elements.namedItem("keyword") as HTMLInputElement).value;
+    if (!newCardNumber || !newCardTitle || !newCardKeyword) {
+      return alert("No・カード名・合言葉を入力してください");
+    }
+    if (!newCardImageUrl) {
+      return alert("画像をアップロードするか、画像URLを入力してください");
+    }
 
-    let finalImageUrl = directUrlInput || "";
-
-    setIsUploading(true);
+    setIsAddingCard(true);
     try {
-      if (file) {
-        const storageRef = ref(storage, `cards/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        finalImageUrl = await getDownloadURL(storageRef);
-      }
-
-      if (!finalImageUrl) {
-        alert("画像ファイルを選択するか、画像URLを入力してください");
-        setIsUploading(false);
-        return;
-      }
-
+      const cardNumber = Number(newCardNumber);
       const docRef = await addDoc(collection(db, "cards"), {
         cardNumber,
-        title,
-        keyword,
-        imageUrl: finalImageUrl,
+        title: newCardTitle,
+        keyword: newCardKeyword,
+        imageUrl: newCardImageUrl,
         createdAt: serverTimestamp()
       });
 
-      setCards(prev => [...prev, { id: docRef.id, cardNumber, title, keyword, imageUrl: finalImageUrl }].sort((a, b) => a.cardNumber - b.cardNumber));
-      form.reset();
+      setCards(
+        (prev) =>
+          [...prev, { id: docRef.id, cardNumber, title: newCardTitle, keyword: newCardKeyword, imageUrl: newCardImageUrl }].sort(
+            (a, b) => a.cardNumber - b.cardNumber
+          )
+      );
+
+      setNewCardNumber("");
+      setNewCardTitle("");
+      setNewCardKeyword("");
+      setNewCardImageUrl("");
       alert("カードを追加しました！");
     } catch (err: any) {
       alert("追加失敗: " + err.message);
     } finally {
-      setIsUploading(false);
+      setIsAddingCard(false);
     }
   };
 
   const handleDeleteCard = async (id: string) => {
-    if (!confirm("本当にこのカードを削除しますか？")) return;
+    if (!confirm("本当に削除しますか？")) return;
     try {
       await deleteDoc(doc(db, "cards", id));
-      setCards(cards.filter(c => c.id !== id));
+      setCards(cards.filter((c) => c.id !== id));
     } catch (err: any) {
       alert("削除失敗: " + err.message);
     }
@@ -315,7 +382,7 @@ export default function AdminDashboard() {
             type="email"
             placeholder="メールアドレス"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full p-3 border rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-pink-400"
           />
@@ -323,7 +390,7 @@ export default function AdminDashboard() {
             type="password"
             placeholder="パスワード"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
             className="w-full p-3 border rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-pink-400"
           />
@@ -339,7 +406,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* ヘッダーバー */}
+        {/* ヘッダー */}
         <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
           <div>
             <h1 className="font-bold text-xl text-slate-800">百合加護ねむり アプリ管理ポータル</h1>
@@ -357,7 +424,7 @@ export default function AdminDashboard() {
 
         {/* タブナビゲーション */}
         <div className="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
-          {(["HOME", "PROFILE", "VIP", "MISSION", "COLLECTION"] as const).map(tab => (
+          {(["HOME", "PROFILE", "VIP", "MISSION", "COLLECTION"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -373,25 +440,44 @@ export default function AdminDashboard() {
         {/* ---------------- 1. HOME 設定 ---------------- */}
         {activeTab === "HOME" && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">HOME：基本プロフィール</h2>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">名前</label>
-                  <input type="text" value={config.name || ""} onChange={e => setConfig({ ...config, name: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="text"
+                    value={config.name || ""}
+                    onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">キャッチコピー</label>
-                  <input type="text" value={config.catchphrase || ""} onChange={e => setConfig({ ...config, catchphrase: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="text"
+                    value={config.catchphrase || ""}
+                    onChange={(e) => setConfig({ ...config, catchphrase: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-1">ヘッダー画像URL</label>
-                  <input type="text" value={config.headerImage || ""} onChange={e => setConfig({ ...config, headerImage: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-1">アイコン画像URL</label>
-                  <input type="text" value={config.avatarImage || ""} onChange={e => setConfig({ ...config, avatarImage: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
-                </div>
+              </div>
+
+              {/* 画像アップローダー（ヘッダー・アイコン） */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <ImageUploader
+                  label="ヘッダー画像"
+                  value={config.headerImage}
+                  onChange={(url) => setConfig({ ...config, headerImage: url })}
+                  folder="headers"
+                />
+                <ImageUploader
+                  label="アバター（アイコン）画像"
+                  value={config.avatarImage}
+                  onChange={(url) => setConfig({ ...config, avatarImage: url })}
+                  folder="avatars"
+                />
               </div>
 
               {/* SNSリンク */}
@@ -403,7 +489,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="名称 (例: YouTube)"
                       value={sns.name}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...config.snsLinks];
                         updated[i].name = e.target.value;
                         setConfig({ ...config, snsLinks: updated });
@@ -414,7 +500,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="URL"
                       value={sns.url}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...config.snsLinks];
                         updated[i].url = e.target.value;
                         setConfig({ ...config, snsLinks: updated });
@@ -444,23 +530,42 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* お知らせ (News) 管理 */}
+            {/* お知らせ管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">HOME：お知らせ (News) 管理</h2>
               <form onSubmit={handleAddNews} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
                 <h3 className="font-bold text-xs text-slate-700">新しいお知らせを追加</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input type="text" placeholder="日付 (例: 2026.09.01)" value={newNewsDate} onChange={e => setNewNewsDate(e.target.value)} required className="p-2 border rounded-lg text-xs" />
-                  <input type="text" placeholder="タイトル" value={newNewsTitle} onChange={e => setNewNewsTitle(e.target.value)} required className="md:col-span-2 p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    placeholder="日付 (例: 2026.09.01)"
+                    value={newNewsDate}
+                    onChange={(e) => setNewNewsDate(e.target.value)}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="タイトル"
+                    value={newNewsTitle}
+                    onChange={(e) => setNewNewsTitle(e.target.value)}
+                    required
+                    className="md:col-span-2 p-2 border rounded-lg text-xs"
+                  />
                 </div>
-                <textarea placeholder="詳細本文..." value={newNewsContent} onChange={e => setNewNewsContent(e.target.value)} className="w-full p-2 border rounded-lg text-xs h-20" />
+                <textarea
+                  placeholder="詳細本文..."
+                  value={newNewsContent}
+                  onChange={(e) => setNewNewsContent(e.target.value)}
+                  className="w-full p-2 border rounded-lg text-xs h-20"
+                />
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700">
                   お知らせを追加
                 </button>
               </form>
 
               <div className="space-y-2">
-                {newsList.map(n => (
+                {newsList.map((n) => (
                   <div key={n.id} className="flex justify-between items-start border p-3 rounded-xl bg-slate-50 text-xs">
                     <div>
                       <span className="text-pink-500 font-bold mr-2">{n.date}</span>
@@ -485,11 +590,21 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">見出しタイトル</label>
-                  <input type="text" value={config.profileTitle || ""} onChange={e => setConfig({ ...config, profileTitle: e.target.value })} className="w-full p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    value={config.profileTitle || ""}
+                    onChange={(e) => setConfig({ ...config, profileTitle: e.target.value })}
+                    className="w-full p-2 border rounded-lg text-xs"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">年表の見出しタイトル</label>
-                  <input type="text" value={config.historyTitle || ""} onChange={e => setConfig({ ...config, historyTitle: e.target.value })} className="w-full p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    value={config.historyTitle || ""}
+                    onChange={(e) => setConfig({ ...config, historyTitle: e.target.value })}
+                    className="w-full p-2 border rounded-lg text-xs"
+                  />
                 </div>
               </div>
 
@@ -502,7 +617,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="項目名 (例: 身長)"
                       value={info.label}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...config.profileInfo];
                         updated[i].label = e.target.value;
                         setConfig({ ...config, profileInfo: updated });
@@ -513,7 +628,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="値 (例: 148cm)"
                       value={info.value}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...config.profileInfo];
                         updated[i].value = e.target.value;
                         setConfig({ ...config, profileInfo: updated });
@@ -543,37 +658,85 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* 活動履歴 (HISTORY) 管理 */}
+            {/* 活動履歴 (HISTORY) 年表管理 */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">PROFILE：活動履歴 (HISTORY) 年表管理</h2>
               <form onSubmit={handleAddTimeline} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
                 <h3 className="font-bold text-xs text-slate-700">年表項目を追加</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <input type="number" placeholder="並び順 (例: 1)" value={newTlOrder} onChange={e => setNewTlOrder(Number(e.target.value))} required className="p-2 border rounded-lg text-xs" />
-                  <input type="text" placeholder="時期 (例: 2024.04)" value={newTlDate} onChange={e => setNewTlDate(e.target.value)} required className="p-2 border rounded-lg text-xs" />
-                  <input type="text" placeholder="タイトル" value={newTlTitle} onChange={e => setNewTlTitle(e.target.value)} required className="md:col-span-2 p-2 border rounded-lg text-xs" />
+                  <input
+                    type="number"
+                    placeholder="並び順"
+                    value={newTlOrder}
+                    onChange={(e) => setNewTlOrder(Number(e.target.value))}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="時期 (例: 2024.04)"
+                    value={newTlDate}
+                    onChange={(e) => setNewTlDate(e.target.value)}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="出来事のタイトル"
+                    value={newTlTitle}
+                    onChange={(e) => setNewTlTitle(e.target.value)}
+                    required
+                    className="md:col-span-2 p-2 border rounded-lg text-xs"
+                  />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <select value={newTlMediaType} onChange={e => setNewTlMediaType(e.target.value)} className="p-2 border rounded-lg text-xs">
+
+                <div className="space-y-2 pt-1">
+                  <label className="text-xs font-bold text-slate-500 block">メディア添付 (画像またはYouTube)</label>
+                  <select
+                    value={newTlMediaType}
+                    onChange={(e) => setNewTlMediaType(e.target.value)}
+                    className="p-2 border rounded-lg text-xs bg-white"
+                  >
                     <option value="none">メディアなし</option>
-                    <option value="image">画像URL</option>
+                    <option value="image">画像ファイル/URL</option>
                     <option value="youtube">YouTube埋め込みURL</option>
                   </select>
-                  <input type="text" placeholder="メディアURL (画像リンクまたはYouTube埋め込みURL)" value={newTlMediaUrl} onChange={e => setNewTlMediaUrl(e.target.value)} className="md:col-span-2 p-2 border rounded-lg text-xs" />
+
+                  {newTlMediaType === "image" && (
+                    <ImageUploader
+                      label="年表用写真"
+                      value={newTlMediaUrl}
+                      onChange={setNewTlMediaUrl}
+                      folder="timeline"
+                    />
+                  )}
+
+                  {newTlMediaType === "youtube" && (
+                    <input
+                      type="text"
+                      placeholder="YouTube埋め込みURL (例: https://www.youtube.com/embed/...)"
+                      value={newTlMediaUrl}
+                      onChange={(e) => setNewTlMediaUrl(e.target.value)}
+                      className="w-full p-2 border rounded-lg text-xs"
+                    />
+                  )}
                 </div>
+
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700">
                   年表項目を追加
                 </button>
               </form>
 
               <div className="space-y-2">
-                {timelineList.map(t => (
+                {timelineList.map((t) => (
                   <div key={t.id} className="flex justify-between items-center border p-3 rounded-xl bg-slate-50 text-xs">
-                    <div>
-                      <span className="font-bold text-slate-400 mr-2">#{t.order}</span>
-                      <span className="text-pink-500 font-bold mr-2">{t.date}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-slate-400">#{t.order}</span>
+                      <span className="text-pink-500 font-bold">{t.date}</span>
                       <strong className="text-slate-800">{t.title}</strong>
-                      {t.mediaType !== "none" && <span className="ml-2 text-[10px] bg-slate-200 px-1.5 py-0.5 rounded">{t.mediaType}</span>}
+                      {t.mediaType === "image" && t.mediaUrl && (
+                        <img src={t.mediaUrl} alt="" className="w-8 h-8 rounded object-cover border" />
+                      )}
                     </div>
                     <button onClick={() => handleDeleteTimeline(t.id)} className="text-red-500 hover:underline">
                       削除
@@ -588,11 +751,16 @@ export default function AdminDashboard() {
         {/* ---------------- 3. VIP 設定 ---------------- */}
         {activeTab === "VIP" && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">VIP：返礼・グッズ設定</h2>
               <div>
                 <label className="text-xs font-bold text-slate-500 block mb-1">VIP見出しタイトル</label>
-                <input type="text" value={config.vipTitle || ""} onChange={e => setConfig({ ...config, vipTitle: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
+                <input
+                  type="text"
+                  value={config.vipTitle || ""}
+                  onChange={(e) => setConfig({ ...config, vipTitle: e.target.value })}
+                  className="w-full p-2.5 border rounded-xl text-sm"
+                />
               </div>
 
               {/* サポート返礼項目 */}
@@ -600,11 +768,13 @@ export default function AdminDashboard() {
                 <label className="text-xs font-bold text-slate-500 block mb-2">サポート返礼項目一覧</label>
                 {config.vipRewards?.map((rew: string, i: number) => (
                   <div key={i} className="flex gap-2 mb-2">
-                    <span className="w-8 flex items-center justify-center font-bold text-xs bg-pink-100 text-pink-600 rounded-lg">{i + 1}</span>
+                    <span className="w-8 flex items-center justify-center font-bold text-xs bg-pink-100 text-pink-600 rounded-lg">
+                      {i + 1}
+                    </span>
                     <input
                       type="text"
                       value={rew}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...config.vipRewards];
                         updated[i] = e.target.value;
                         setConfig({ ...config, vipRewards: updated });
@@ -629,38 +799,39 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* グッズ写真URL一覧 */}
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-2">グッズ写真URL一覧</label>
-                {config.goodsImages?.map((img: string, i: number) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="画像URL"
-                      value={img}
-                      onChange={e => {
-                        const updated = [...config.goodsImages];
-                        updated[i] = e.target.value;
-                        setConfig({ ...config, goodsImages: updated });
-                      }}
-                      className="flex-1 p-2 border rounded-xl text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setConfig({ ...config, goodsImages: config.goodsImages.filter((_: any, idx: number) => idx !== i) })}
-                      className="text-red-500 text-xs px-2 border rounded-lg hover:bg-red-50"
-                    >
-                      削除
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setConfig({ ...config, goodsImages: [...(config.goodsImages || []), ""] })}
-                  className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 mt-1"
-                >
-                  + グッズ写真URLを追加
-                </button>
+              {/* グッズ写真の追加・一覧 */}
+              <div className="pt-2 border-t">
+                <label className="text-xs font-bold text-slate-600 block mb-2">グッズ写真ギャラリー</label>
+                <div className="space-y-3">
+                  {config.goodsImages?.map((img: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2 p-2 border rounded-xl bg-slate-50">
+                      <ImageUploader
+                        label={`グッズ写真 #${i + 1}`}
+                        value={img}
+                        onChange={(url) => {
+                          const updated = [...config.goodsImages];
+                          updated[i] = url;
+                          setConfig({ ...config, goodsImages: updated });
+                        }}
+                        folder="goods"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setConfig({ ...config, goodsImages: config.goodsImages.filter((_: any, idx: number) => idx !== i) })}
+                        className="text-red-500 text-xs px-2 py-1 border border-red-200 rounded-lg hover:bg-red-50 self-center mt-4"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ ...config, goodsImages: [...(config.goodsImages || []), ""] })}
+                    className="text-xs text-blue-600 font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50"
+                  >
+                    + グッズ写真枠を追加
+                  </button>
+                </div>
               </div>
 
               <button onClick={saveConfig} className="bg-pink-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-pink-600 transition">
@@ -668,26 +839,49 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* 歴代サポーター一覧 */}
+            {/* 歴代サポーター */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">VIP：歴代サポーター管理</h2>
               <form onSubmit={handleAddSupporter} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
                 <h3 className="font-bold text-xs text-slate-700">サポーターを追加</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <input type="number" placeholder="並び順" value={newSupOrder} onChange={e => setNewSupOrder(Number(e.target.value))} required className="p-2 border rounded-lg text-xs" />
-                  <input type="text" placeholder="名前 (例: おやすみ太郎)" value={newSupName} onChange={e => setNewSupName(e.target.value)} required className="p-2 border rounded-lg text-xs" />
-                  <input type="text" placeholder="アバター画像URL" value={newSupAvatarUrl} onChange={e => setNewSupAvatarUrl(e.target.value)} className="md:col-span-2 p-2 border rounded-lg text-xs" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    placeholder="並び順"
+                    value={newSupOrder}
+                    onChange={(e) => setNewSupOrder(Number(e.target.value))}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="お名前 (例: おやすみ太郎)"
+                    value={newSupName}
+                    onChange={(e) => setNewSupName(e.target.value)}
+                    required
+                    className="md:col-span-2 p-2 border rounded-lg text-xs"
+                  />
                 </div>
+                <ImageUploader
+                  label="サポーターのアバターアイコン"
+                  value={newSupAvatarUrl}
+                  onChange={setNewSupAvatarUrl}
+                  folder="supporters"
+                />
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700">
                   サポーターを追加
                 </button>
               </form>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {supportersList.map(s => (
+                {supportersList.map((s) => (
                   <div key={s.id} className="border p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-2 truncate">
-                      <img src={s.avatarUrl || "/api/placeholder/40/40"} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                      {s.avatarUrl ? (
+                        <img src={s.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-200" />
+                      )}
                       <span className="font-bold truncate">{s.name}</span>
                     </div>
                     <button onClick={() => handleDeleteSupporter(s.id)} className="text-red-500 text-xs ml-2">削除</button>
@@ -706,23 +900,43 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">イベント名 (タイトル)</label>
-                  <input type="text" value={mission.title || ""} onChange={e => setMission({ ...mission, title: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="text"
+                    value={mission.title || ""}
+                    onChange={(e) => setMission({ ...mission, title: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">サブタイトル / 告知文</label>
-                  <input type="text" value={mission.subTitle || ""} onChange={e => setMission({ ...mission, subTitle: e.target.value })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="text"
+                    value={mission.subTitle || ""}
+                    onChange={(e) => setMission({ ...mission, subTitle: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">現在ポイント (pt)</label>
-                  <input type="number" value={mission.currentPt || 0} onChange={e => setMission({ ...mission, currentPt: Number(e.target.value) })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="number"
+                    value={mission.currentPt || 0}
+                    onChange={(e) => setMission({ ...mission, currentPt: Number(e.target.value) })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">目標ポイント (pt)</label>
-                  <input type="number" value={mission.targetPt || 0} onChange={e => setMission({ ...mission, targetPt: Number(e.target.value) })} className="w-full p-2.5 border rounded-xl text-sm" />
+                  <input
+                    type="number"
+                    value={mission.targetPt || 0}
+                    onChange={(e) => setMission({ ...mission, targetPt: Number(e.target.value) })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
                 </div>
               </div>
 
-              {/* 公約・特典リスト */}
+              {/* 公約・特典 */}
               <div className="pt-2">
                 <label className="text-xs font-bold text-slate-500 block mb-2">公約・達成特典一覧</label>
                 {mission.rewards?.map((r: any, i: number) => (
@@ -731,7 +945,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="Step (例: 50%達成)"
                       value={r.step}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...mission.rewards];
                         updated[i].step = e.target.value;
                         setMission({ ...mission, rewards: updated });
@@ -742,7 +956,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="特典内容 (例: 新規歌ってみた投稿)"
                       value={r.reward}
-                      onChange={e => {
+                      onChange={(e) => {
                         const updated = [...mission.rewards];
                         updated[i].reward = e.target.value;
                         setMission({ ...mission, rewards: updated });
@@ -782,15 +996,30 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">吹き出しメッセージ</label>
-                  <input type="text" value={config.collectionBubbleText || ""} onChange={e => setConfig({ ...config, collectionBubbleText: e.target.value })} className="w-full p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    value={config.collectionBubbleText || ""}
+                    onChange={(e) => setConfig({ ...config, collectionBubbleText: e.target.value })}
+                    className="w-full p-2 border rounded-lg text-xs"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">合言葉プレースホルダー</label>
-                  <input type="text" value={config.collectionGachaPlaceholder || ""} onChange={e => setConfig({ ...config, collectionGachaPlaceholder: e.target.value })} className="w-full p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    value={config.collectionGachaPlaceholder || ""}
+                    onChange={(e) => setConfig({ ...config, collectionGachaPlaceholder: e.target.value })}
+                    className="w-full p-2 border rounded-lg text-xs"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">ガチャボタン文言</label>
-                  <input type="text" value={config.collectionButtonText || ""} onChange={e => setConfig({ ...config, collectionButtonText: e.target.value })} className="w-full p-2 border rounded-lg text-xs" />
+                  <input
+                    type="text"
+                    value={config.collectionButtonText || ""}
+                    onChange={(e) => setConfig({ ...config, collectionButtonText: e.target.value })}
+                    className="w-full p-2 border rounded-lg text-xs"
+                  />
                 </div>
               </div>
               <button onClick={saveConfig} className="bg-pink-500 text-white px-5 py-2 rounded-xl font-bold text-sm shadow hover:bg-pink-600 transition">
@@ -804,40 +1033,62 @@ export default function AdminDashboard() {
               <form onSubmit={handleAddCard} className="bg-slate-50 p-4 rounded-xl space-y-3 border">
                 <h3 className="font-bold text-xs text-slate-700">新しいカードの追加</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input name="cardNumber" type="number" placeholder="No. (例: 1)" required className="p-2 border rounded-lg text-xs" />
-                  <input name="title" type="text" placeholder="カード名 (例: 桜の下で)" required className="p-2 border rounded-lg text-xs" />
-                  <input name="keyword" type="text" placeholder="解禁用合言葉 (例: sakura)" required className="p-2 border rounded-lg text-xs" />
+                  <input
+                    type="number"
+                    placeholder="No. (例: 1)"
+                    value={newCardNumber}
+                    onChange={(e) => setNewCardNumber(e.target.value)}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="カード名 (例: 桜の下で)"
+                    value={newCardTitle}
+                    onChange={(e) => setNewCardTitle(e.target.value)}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="解禁用合言葉 (例: sakura)"
+                    value={newCardKeyword}
+                    onChange={(e) => setNewCardKeyword(e.target.value)}
+                    required
+                    className="p-2 border rounded-lg text-xs"
+                  />
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">画像ファイルを直接アップロード</label>
-                    <input name="image" type="file" accept="image/*" className="block w-full text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">または 画像URLを直接入力</label>
-                    <input name="imageUrlDirect" type="text" placeholder="https://..." className="w-full p-2 border rounded-lg text-xs" />
-                  </div>
-                </div>
+
+                <ImageUploader
+                  label="カードイラスト画像"
+                  value={newCardImageUrl}
+                  onChange={setNewCardImageUrl}
+                  folder="cards"
+                />
 
                 <button
                   type="submit"
-                  disabled={isUploading}
+                  disabled={isAddingCard}
                   className={`w-full py-2.5 bg-pink-500 text-white rounded-xl font-bold text-xs transition shadow ${
-                    isUploading ? "opacity-50 cursor-not-allowed" : "hover:bg-pink-600"
+                    isAddingCard ? "opacity-50 cursor-not-allowed" : "hover:bg-pink-600"
                   }`}
                 >
-                  {isUploading ? "カードを保存中..." : "カードを追加する"}
+                  {isAddingCard ? "カードを追加中..." : "カードを追加する"}
                 </button>
               </form>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
-                {cards.map(c => (
+                {cards.map((c) => (
                   <div key={c.id} className="border rounded-xl p-2.5 flex flex-col items-center bg-white shadow-sm">
                     <img src={c.imageUrl} className="w-full h-28 object-cover rounded-lg mb-2" alt={c.title} />
-                    <span className="font-bold text-xs text-slate-800">No.{c.cardNumber} {c.title}</span>
+                    <span className="font-bold text-xs text-slate-800">
+                      No.{c.cardNumber} {c.title}
+                    </span>
                     <span className="text-[10px] text-pink-500 mt-0.5">合言葉: {c.keyword}</span>
-                    <button onClick={() => handleDeleteCard(c.id)} className="mt-2 text-red-500 text-[11px] font-bold border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 w-full">
+                    <button
+                      onClick={() => handleDeleteCard(c.id)}
+                      className="mt-2 text-red-500 text-[11px] font-bold border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 w-full"
+                    >
                       削除
                     </button>
                   </div>
