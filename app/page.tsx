@@ -8,7 +8,6 @@ import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLi
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
-// Firestoreが空の場合のデフォルトデータ（Loading停止を防止）
 const DEFAULT_CONFIG = {
   name: "百合加護ねむり",
   catchphrase: "あなたの夜にそっと寄り添う、安眠系VTuber。",
@@ -18,19 +17,25 @@ const DEFAULT_CONFIG = {
     { name: "YouTube", url: "https://youtube.com" },
     { name: "X (Twitter)", url: "https://twitter.com" }
   ],
+  profileTitle: "PROFILE",
+  historyTitle: "HISTORY",
   profileInfo: [
     { label: "誕生日", value: "9月1日" },
     { label: "ファンネーム", value: "ねむりんちゅ" }
   ],
+  vipTitle: "サポート返礼",
   vipRewards: ["限定お礼ボイス", "デジタル会員証", "限定イラストカード"],
-  goodsImages: []
+  goodsImages: [],
+  collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
+  collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
+  collectionButtonText: "ガチャをひく"
 };
 
 export default function App() {
   const [tab, setTab] = useState("HOME");
   const [uid, setUid] = useState<string | null>(null);
   
-  // Data States（初期値にフォールバックを設定してブロックを防止）
+  // Data States
   const [config, setConfig] = useState<any>(DEFAULT_CONFIG);
   const [news, setNews] = useState<any[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
@@ -48,56 +53,45 @@ export default function App() {
   const [msgText, setMsgText] = useState("");
 
   useEffect(() => {
-    // 匿名ログイン
     signInAnonymously(auth).catch(console.error);
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (user) setUid(user.uid);
     });
 
-    // LocalStorageから獲得済みカードを復元
     try {
       const storedCards = localStorage.getItem("nemuri_cards");
       if (storedCards) setUnlockedCards(JSON.parse(storedCards));
     } catch (e) {
-      console.warn("LocalStorage read error:", e);
+      console.warn(e);
     }
 
-    // Firestore リアルタイムリスナー
+    // Firestore リアルタイム監視
     const unsubConfig = onSnapshot(doc(db, "app_config", "global"), (d) => {
-      if (d.exists()) {
-        setConfig(d.data());
-      }
-    }, (err) => console.warn("config snapshot error:", err));
+      if (d.exists()) setConfig((prev: any) => ({ ...prev, ...d.data() }));
+    });
 
     const unsubMission = onSnapshot(doc(db, "mission", "main"), (d) => {
-      if (d.exists()) {
-        setMission(d.data());
-      }
-    }, (err) => console.warn("mission snapshot error:", err));
+      if (d.exists()) setMission(d.data());
+    });
 
     const unsubNews = onSnapshot(query(collection(db, "news"), orderBy("createdAt", "desc")), 
-      (s) => setNews(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.warn("news snapshot error:", err)
+      (s) => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))
     );
 
     const unsubTimeline = onSnapshot(query(collection(db, "timeline"), orderBy("order", "asc")), 
-      (s) => setTimeline(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.warn("timeline snapshot error:", err)
+      (s) => setTimeline(s.docs.map(d => ({ id: d.id, ...d.data() })))
     );
 
     const unsubSupporters = onSnapshot(query(collection(db, "supporters"), orderBy("order", "asc")), 
-      (s) => setSupporters(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.warn("supporters snapshot error:", err)
+      (s) => setSupporters(s.docs.map(d => ({ id: d.id, ...d.data() })))
     );
 
     const unsubMessages = onSnapshot(query(collection(db, "messages"), orderBy("createdAt", "desc")), 
-      (s) => setMessages(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.warn("messages snapshot error:", err)
+      (s) => setMessages(s.docs.map(d => ({ id: d.id, ...d.data() })))
     );
 
     const unsubCards = onSnapshot(query(collection(db, "cards"), orderBy("cardNumber", "asc")), 
-      (s) => setCards(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.warn("cards snapshot error:", err)
+      (s) => setCards(s.docs.map(d => ({ id: d.id, ...d.data() })))
     );
 
     return () => {
@@ -108,7 +102,7 @@ export default function App() {
 
   const handleGacha = () => {
     const input = gachaInput.trim().toLowerCase();
-    const matchedCard = cards.find(c => c.keyword && c.keyword.toLowerCase() === input);
+    const matchedCard = cards.find(c => c.keyword && c.keyword.trim().toLowerCase() === input);
     
     if (matchedCard) {
       if (!unlockedCards.includes(matchedCard.cardNumber)) {
@@ -170,7 +164,7 @@ export default function App() {
                           🌙
                         </div>
                       )}
-                      <h1 className="text-xl font-bold pb-2 drop-shadow-md">{config.name || "百合加護ねむり"}</h1>
+                      <h1 className="text-xl font-bold pb-2 drop-shadow-md">{config.name}</h1>
                     </div>
                   </div>
                   <div className="pt-10 px-6 text-center">
@@ -216,7 +210,7 @@ export default function App() {
               {/* PROFILE */}
               {tab === "PROFILE" && (
                 <div className="p-6 space-y-8">
-                  <h2 className="text-center text-xl font-black tracking-wider">PROFILE</h2>
+                  <h2 className="text-center text-xl font-black tracking-wider">{config.profileTitle || "PROFILE"}</h2>
                   <div className="grid grid-cols-2 gap-3 bg-pink-50 p-4 rounded-2xl border border-pink-100">
                     {config.profileInfo?.map((info: any, i: number) => (
                       <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
@@ -226,7 +220,7 @@ export default function App() {
                     ))}
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">HISTORY</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">{config.historyTitle || "HISTORY"}</h3>
                     <div className="flex flex-col items-center space-y-3">
                       {timeline.length === 0 ? (
                         <p className="text-xs text-slate-400 py-4">活動履歴はまだありません</p>
@@ -257,7 +251,7 @@ export default function App() {
               {/* VIP */}
               {tab === "VIP" && (
                 <div className="p-6 space-y-8">
-                  <h2 className="text-center text-xl font-black tracking-wider">サポート返礼</h2>
+                  <h2 className="text-center text-xl font-black tracking-wider">{config.vipTitle || "サポート返礼"}</h2>
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
                     {config.vipRewards?.map((reward: string, i: number) => (
                       <div key={i} className="flex items-center space-x-3 text-sm font-medium py-1.5 border-b border-slate-50 last:border-0">
@@ -307,7 +301,7 @@ export default function App() {
                     <>
                       <div className="text-center">
                         <h2 className="text-base font-black text-slate-800">{mission.title}</h2>
-                        <p className="text-xs text-pink-500 font-bold mt-1">応援よろしくお願いします！</p>
+                        <p className="text-xs text-pink-500 font-bold mt-1">{mission.subTitle || "応援よろしくお願いします！"}</p>
                       </div>
                       <div className="bg-white border rounded-2xl p-5 shadow-sm space-y-3">
                         <div className="flex justify-between items-baseline">
@@ -369,10 +363,20 @@ export default function App() {
                       {config.avatarImage && (
                         <img src={config.avatarImage} className="w-10 h-10 rounded-full border border-pink-200 object-cover" alt="mini avatar" />
                       )}
-                      <div className="bg-white px-3 py-1.5 rounded-2xl rounded-bl-none text-xs font-bold text-pink-600 shadow-sm">ネムリンのイラストカードをコンプしよう！</div>
+                      <div className="bg-white px-3 py-1.5 rounded-2xl rounded-bl-none text-xs font-bold text-pink-600 shadow-sm">
+                        {config.collectionBubbleText || "ネムリンのイラストカードをコンプしよう！"}
+                      </div>
                     </div>
-                    <input type="text" placeholder="合言葉を入力 (例: nemuri)" value={gachaInput} onChange={e=>setGachaInput(e.target.value)} className="w-full text-center text-sm p-2 rounded-xl border border-pink-200 outline-none" />
-                    <button onClick={handleGacha} className="w-full py-2.5 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition">ガチャをひく</button>
+                    <input
+                      type="text"
+                      placeholder={config.collectionGachaPlaceholder || "合言葉を入力 (例: nemuri)"}
+                      value={gachaInput}
+                      onChange={e => setGachaInput(e.target.value)}
+                      className="w-full text-center text-sm p-2 rounded-xl border border-pink-200 outline-none"
+                    />
+                    <button onClick={handleGacha} className="w-full py-2.5 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition">
+                      {config.collectionButtonText || "ガチャをひく"}
+                    </button>
                   </div>
                   
                   {/* 横3列 × 縦無制限 グリッド */}
