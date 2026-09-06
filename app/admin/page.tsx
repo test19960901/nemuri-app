@@ -115,6 +115,7 @@ export default function AdminDashboard() {
     historyTitle: "HISTORY",
     profileInfo: [],
     vipTitle: "サポート返礼",
+    supportersTitle: "歴代サポーター",
     vipRewards: [],
     goodsImages: [],
     collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
@@ -788,19 +789,31 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ---------------- 3. VIP 設定 ---------------- */}
+{/* ---------------- 3. VIP 設定 ---------------- */}
         {activeTab === "VIP" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
               <h2 className="font-bold text-base border-b pb-2 text-slate-800">VIP：返礼・グッズ設定</h2>
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">VIP見出しタイトル</label>
-                <input
-                  type="text"
-                  value={config.vipTitle || ""}
-                  onChange={(e) => setConfig({ ...config, vipTitle: e.target.value })}
-                  className="w-full p-2.5 border rounded-xl text-sm"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 block mb-1">VIP見出しタイトル</label>
+                  <input
+                    type="text"
+                    value={config.vipTitle || ""}
+                    onChange={(e) => setConfig({ ...config, vipTitle: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 block mb-1">歴代サポーター見出しタイトル</label>
+                  <input
+                    type="text"
+                    value={config.supportersTitle || ""}
+                    onChange={(e) => setConfig({ ...config, supportersTitle: e.target.value })}
+                    placeholder="歴代サポーター"
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
+                </div>
               </div>
 
               {/* サポート返礼項目 */}

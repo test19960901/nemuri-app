@@ -34,6 +34,7 @@ const DEFAULT_CONFIG = {
     { label: "ファンネーム", value: "ねむりんちゅ" }
   ],
   vipTitle: "サポート返礼",
+  supportersTitle: "歴代サポーター",
   vipRewards: [
     { text: "限定お礼ボイス", imageUrl: "" },
     { text: "デジタル会員証", imageUrl: "" },
@@ -398,8 +399,10 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-center text-lg font-bold mb-4">歴代サポーター</h3>
+                    <div>
+                    <h3 className="text-center text-lg font-bold mb-4">
+                      {config.supportersTitle || "歴代サポーター"}
+                    </h3>
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
                       {supporters.length === 0 ? (
                         <p className="text-xs text-slate-400 w-full text-center py-2">サポーター募集中！</p>
