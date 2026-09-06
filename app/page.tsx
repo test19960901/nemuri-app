@@ -18,34 +18,170 @@ import { Home, User, Crown, Flag, Gift, ChevronDown, ChevronUp, Lock, ExternalLi
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
+// 各タブのダミー初期データ（単一項目は1個、リスト系は3個まで設定）
 const DEFAULT_CONFIG = {
   name: "百合加護ねむり",
   catchphrase: "あなたの夜にそっと寄り添う、安眠系VTuber。",
-  headerImage: "",
-  avatarImage: "",
+  headerImage: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop",
+  avatarImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
   snsLinks: [
     { name: "YouTube", url: "https://youtube.com" },
-    { name: "X (Twitter)", url: "https://twitter.com" }
+    { name: "X (Twitter)", url: "https://twitter.com" },
+    { name: "FANBOX", url: "https://pixiv.net" }
   ],
   profileTitle: "PROFILE",
   historyTitle: "HISTORY",
   profileInfo: [
-    { label: "誕生日", value: "9月1日" },
-    { label: "ファンネーム", value: "ねむりんちゅ" }
+    { label: "誕生日", value: "9月1日", imageUrl: "" },
+    { label: "ファンネーム", value: "ねむりんちゅ", imageUrl: "" },
+    { label: "好きなもの", value: "温かいミルク・オルゴール", imageUrl: "" }
   ],
   vipTitle: "サポート返礼",
   supportersTitle: "歴代サポーター",
   vipRewards: [
-    { text: "限定お礼ボイス", imageUrl: "" },
-    { text: "デジタル会員証", imageUrl: "" },
-    { text: "限定イラストカード", imageUrl: "" }
+    { text: "限定おやすみ添い寝ボイス（毎月更新）", imageUrl: "" },
+    { text: "デジタルねむりん会員証", imageUrl: "" },
+    { text: "シークレット描き下ろしイラストカード", imageUrl: "" }
   ],
-  goodsImages: [],
+  goodsImages: [
+    "https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=500&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=500&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=500&auto=format&fit=crop"
+  ],
   collectionBubbleText: "ネムリンのイラストカードをコンプしよう！",
   collectionGachaPlaceholder: "合言葉を入力 (例: nemuri)",
   collectionButtonText: "ガチャをひく",
-  gachaKeywords: ["nemuri"]
+  gachaKeywords: ["nemuri", "おやすみ", "ねむりん"]
 };
+
+// ミッションのダミー初期データ
+const DEFAULT_MISSION = {
+  title: "1st Anniversary 記念イベント",
+  subTitle: "みんなで新衣装と記念配信を目指そう！",
+  currentPt: 45000,
+  targetPt: 100000,
+  rewards: [
+    { step: "Step 1 (30%)", reward: "記念スマホ壁紙プレゼント", imageUrl: "" },
+    { step: "Step 2 (60%)", reward: "新衣装ラフ画先行チラ見せ", imageUrl: "" },
+    { step: "Step 3 (100%)", reward: "新衣装お披露目3Dミニライブ開催！", imageUrl: "" }
+  ]
+};
+
+// お知らせのダミー初期データ（3件）
+const DEFAULT_NEWS = [
+  {
+    id: "dummy-news-1",
+    date: "2026.09.01",
+    title: "公式ファンポータル＆カードコレクション公開！",
+    content: "百合加護ねむりの公式ファンアプリがオープンしました！\n毎日合言葉でガチャを引いて、限定カードをコレクションしてね🌙",
+    imageUrl: ""
+  },
+  {
+    id: "dummy-news-2",
+    date: "2026.08.20",
+    title: "活動1周年記念配信のお知らせ",
+    content: "おかげさまで活動1周年を迎えます！\n当日は記念ミッションの達成発表や特別な歌枠を予定しています。",
+    imageUrl: ""
+  },
+  {
+    id: "dummy-news-3",
+    date: "2026.08.01",
+    title: "新メンバーシップ特典・限定ボイス追加",
+    content: "今月の限定おやすみボイス「夏の夜のひそひそ話」を公開しました！VIPタブからチェックしてね。",
+    imageUrl: ""
+  }
+];
+
+// 年表のダミー初期データ（3件）
+const DEFAULT_TIMELINE = [
+  {
+    id: "dummy-tl-1",
+    date: "2024.09.01",
+    title: "初配信＆VTuberデビュー🌙",
+    mediaType: "none",
+    mediaUrl: "",
+    order: 1
+  },
+  {
+    id: "dummy-tl-2",
+    date: "2025.03.15",
+    title: "チャンネル登録者数1万人突破＆記念歌枠",
+    mediaType: "none",
+    mediaUrl: "",
+    order: 2
+  },
+  {
+    id: "dummy-tl-3",
+    date: "2025.09.01",
+    title: "活動1周年＆初オリジナルソング発表",
+    mediaType: "none",
+    mediaUrl: "",
+    order: 3
+  }
+];
+
+// サポーターのダミー初期データ（3件）
+const DEFAULT_SUPPORTERS = [
+  {
+    id: "dummy-sup-1",
+    name: "ねむねむナイト",
+    avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop",
+    order: 1
+  },
+  {
+    id: "dummy-sup-2",
+    name: "おやすみ星人",
+    avatarUrl: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=200&auto=format&fit=crop",
+    order: 2
+  },
+  {
+    id: "dummy-sup-3",
+    name: "パジャマ部長",
+    avatarUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&auto=format&fit=crop",
+    order: 3
+  }
+];
+
+// ガチャカードのダミー初期データ（3枚）
+const DEFAULT_CARDS = [
+  {
+    id: "dummy-card-1",
+    cardNumber: 1,
+    title: "星降る夜のねむりん",
+    imageUrl: "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=400&auto=format&fit=crop"
+  },
+  {
+    id: "dummy-card-2",
+    cardNumber: 2,
+    title: "もこもこパジャマパーティー",
+    imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=400&auto=format&fit=crop"
+  },
+  {
+    id: "dummy-card-3",
+    cardNumber: 3,
+    title: "夢のなかでおはよう",
+    imageUrl: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=400&auto=format&fit=crop"
+  }
+];
+
+// 応援メッセージのダミー初期データ（3件）
+const DEFAULT_MESSAGES = [
+  {
+    id: "dummy-msg-1",
+    name: "ねむりん推し",
+    text: "いつも心地よい配信をありがとう！毎晩癒やされてぐっすり眠れてます🌙"
+  },
+  {
+    id: "dummy-msg-2",
+    name: "ひつじ数え隊",
+    text: "1周年おめでとう！ミッション達成応援してるよ〜！！"
+  },
+  {
+    id: "dummy-msg-3",
+    name: "ナイトミルク",
+    text: "カードコンプ目指して毎日合言葉入力します！"
+  }
+];
 
 // 今日の日付文字列（YYYY-MM-DD）を取得する関数
 const getTodayString = () => {
@@ -60,14 +196,14 @@ export default function App() {
   const [tab, setTab] = useState("HOME");
   const [uid, setUid] = useState<string | null>(null);
   
-  // Data States
+  // Data States（初期値にダミーデータを設定）
   const [config, setConfig] = useState<any>(DEFAULT_CONFIG);
-  const [news, setNews] = useState<any[]>([]);
-  const [timeline, setTimeline] = useState<any[]>([]);
-  const [supporters, setSupporters] = useState<any[]>([]);
-  const [mission, setMission] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [cards, setCards] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>(DEFAULT_NEWS);
+  const [timeline, setTimeline] = useState<any[]>(DEFAULT_TIMELINE);
+  const [supporters, setSupporters] = useState<any[]>(DEFAULT_SUPPORTERS);
+  const [mission, setMission] = useState<any>(DEFAULT_MISSION);
+  const [messages, setMessages] = useState<any[]>(DEFAULT_MESSAGES);
+  const [cards, setCards] = useState<any[]>(DEFAULT_CARDS);
   
   // UI States
   const [openNews, setOpenNews] = useState<Record<string, boolean>>({});
@@ -109,6 +245,7 @@ export default function App() {
       console.warn(e);
     }
 
+    // Firestoreデータが存在すればダミーから上書き
     const unsubConfig = onSnapshot(doc(db, "app_config", "global"), (d) => {
       if (d.exists()) setConfig((prev: any) => ({ ...prev, ...d.data() }));
     });
@@ -117,25 +254,25 @@ export default function App() {
       if (d.exists()) setMission(d.data());
     });
 
-    const unsubNews = onSnapshot(query(collection(db, "news"), orderBy("createdAt", "desc")), 
-      (s) => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
+    const unsubNews = onSnapshot(query(collection(db, "news"), orderBy("createdAt", "desc")), (s) => {
+      if (!s.empty) setNews(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 
-    const unsubTimeline = onSnapshot(query(collection(db, "timeline"), orderBy("order", "asc")), 
-      (s) => setTimeline(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
+    const unsubTimeline = onSnapshot(query(collection(db, "timeline"), orderBy("order", "asc")), (s) => {
+      if (!s.empty) setTimeline(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 
-    const unsubSupporters = onSnapshot(query(collection(db, "supporters"), orderBy("order", "asc")), 
-      (s) => setSupporters(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
+    const unsubSupporters = onSnapshot(query(collection(db, "supporters"), orderBy("order", "asc")), (s) => {
+      if (!s.empty) setSupporters(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 
-    const unsubMessages = onSnapshot(query(collection(db, "messages"), orderBy("createdAt", "desc")), 
-      (s) => setMessages(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
+    const unsubMessages = onSnapshot(query(collection(db, "messages"), orderBy("createdAt", "desc")), (s) => {
+      if (!s.empty) setMessages(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 
-    const unsubCards = onSnapshot(query(collection(db, "cards"), orderBy("cardNumber", "asc")), 
-      (s) => setCards(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
+    const unsubCards = onSnapshot(query(collection(db, "cards"), orderBy("cardNumber", "asc")), (s) => {
+      if (!s.empty) setCards(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 
     return () => {
       unsubAuth(); unsubConfig(); unsubMission(); unsubNews();
@@ -143,16 +280,11 @@ export default function App() {
     };
   }, []);
 
-  // 判定フラグ
   const todayStr = getTodayString();
   const hasPulledToday = lastGachaDate === todayStr;
-  
-  // 未所持カード一覧
   const unobtainedCards = cards.filter((c) => !unlockedCards.includes(c.cardNumber));
-  // 全種コンプリート判定
   const isCompleted = cards.length > 0 && unobtainedCards.length === 0;
 
-  // --- 重複なし・1日1回ランダムガチャ ---
   const handleGacha = async () => {
     if (isCompleted) {
       alert("全種類のカードをコンプリートしています！おめでとうございます！");
@@ -172,7 +304,6 @@ export default function App() {
       return;
     }
 
-    // 合言葉判定
     const validKeywords = (config.gachaKeywords || ["nemuri"]).map((k: string) => k.trim().toLowerCase());
     const isValid = validKeywords.includes(input);
 
@@ -181,16 +312,13 @@ export default function App() {
       return;
     }
 
-    // ★ 未所持カードの中からのみ完全ランダムで選定（重複・ダブりの完全排除）
     const randomIndex = Math.floor(Math.random() * unobtainedCards.length);
     const chosenCard = unobtainedCards[randomIndex];
 
-    // 新規カードとしてアンロック
     const newUnlocked = [...unlockedCards, chosenCard.cardNumber];
     setUnlockedCards(newUnlocked);
     localStorage.setItem("nemuri_cards", JSON.stringify(newUnlocked));
 
-    // 本日のガチャ実施日を更新（1日1回制限）
     setLastGachaDate(todayStr);
     localStorage.setItem("nemuri_last_gacha_date", todayStr);
 
@@ -202,7 +330,6 @@ export default function App() {
       }
     }
 
-    // 紙吹雪＆当選演出モーダル表示
     confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
     setWonCard({ card: chosenCard, isNew: true });
     setGachaInput("");
@@ -268,38 +395,34 @@ export default function App() {
                   <div className="px-6">
                     <h2 className="text-lg font-bold mb-3">News</h2>
                     <div className="space-y-2">
-                      {news.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-4">お知らせはまだありません</p>
-                      ) : (
-                        news.map(n => (
-                          <div key={n.id} className="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
-                            <button onClick={() => setOpenNews(prev => ({ ...prev, [n.id]: !prev[n.id] }))} className="w-full p-4 flex justify-between items-center text-left">
-                              <div>
-                                <span className="text-xs text-pink-500 font-bold block">{n.date}</span>
-                                <span className="text-sm font-bold">{n.title}</span>
-                              </div>
-                              {openNews[n.id] ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                            </button>
-                            <AnimatePresence>
-                              {openNews[n.id] && (
-                                <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                                  <div className="px-4 pb-4 border-t pt-3 space-y-3">
-                                    <p className="text-xs text-slate-600 whitespace-pre-wrap">{n.content}</p>
-                                    {n.imageUrl && (
-                                      <img
-                                        src={n.imageUrl}
-                                        alt=""
-                                        className="w-full rounded-xl object-cover max-h-48 cursor-pointer border border-slate-100 hover:opacity-95 transition"
-                                        onClick={() => setLightbox(n.imageUrl)}
-                                      />
-                                    )}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        ))
-                      )}
+                      {news.map(n => (
+                        <div key={n.id} className="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+                          <button onClick={() => setOpenNews(prev => ({ ...prev, [n.id]: !prev[n.id] }))} className="w-full p-4 flex justify-between items-center text-left">
+                            <div>
+                              <span className="text-xs text-pink-500 font-bold block">{n.date}</span>
+                              <span className="text-sm font-bold">{n.title}</span>
+                            </div>
+                            {openNews[n.id] ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                          </button>
+                          <AnimatePresence>
+                            {openNews[n.id] && (
+                              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+                                <div className="px-4 pb-4 border-t pt-3 space-y-3">
+                                  <p className="text-xs text-slate-600 whitespace-pre-wrap">{n.content}</p>
+                                  {n.imageUrl && (
+                                    <img
+                                      src={n.imageUrl}
+                                      alt=""
+                                      className="w-full rounded-xl object-cover max-h-48 cursor-pointer border border-slate-100 hover:opacity-95 transition"
+                                      onClick={() => setLightbox(n.imageUrl)}
+                                    />
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -330,27 +453,23 @@ export default function App() {
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">{config.historyTitle || "HISTORY"}</h3>
                     <div className="flex flex-col items-center space-y-3">
-                      {timeline.length === 0 ? (
-                        <p className="text-xs text-slate-400 py-4">活動履歴はまだありません</p>
-                      ) : (
-                        timeline.map((t, idx) => (
-                          <div key={t.id} className="w-full flex flex-col items-center">
-                            <div className="w-full bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
-                              <div className="text-xs font-bold text-pink-500 mb-1">{t.date}</div>
-                              <div className="text-sm font-bold">{t.title}</div>
-                              {t.mediaType === "youtube" && (
-                                <div className="aspect-video w-full rounded-xl overflow-hidden mt-3"><iframe src={t.mediaUrl} className="w-full h-full" allowFullScreen></iframe></div>
-                              )}
-                              {t.mediaType === "image" && (
-                                <div className="mt-3 cursor-pointer rounded-xl overflow-hidden" onClick={() => setLightbox(t.mediaUrl)}>
-                                  <img src={t.mediaUrl} className="w-full h-40 object-cover hover:opacity-90 transition" alt={t.title} />
-                                </div>
-                              )}
-                            </div>
-                            {idx !== timeline.length - 1 && <ChevronDown className="w-5 h-5 text-slate-300 my-1" />}
+                      {timeline.map((t, idx) => (
+                        <div key={t.id} className="w-full flex flex-col items-center">
+                          <div className="w-full bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+                            <div className="text-xs font-bold text-pink-500 mb-1">{t.date}</div>
+                            <div className="text-sm font-bold">{t.title}</div>
+                            {t.mediaType === "youtube" && (
+                              <div className="aspect-video w-full rounded-xl overflow-hidden mt-3"><iframe src={t.mediaUrl} className="w-full h-full" allowFullScreen></iframe></div>
+                            )}
+                            {t.mediaType === "image" && (
+                              <div className="mt-3 cursor-pointer rounded-xl overflow-hidden" onClick={() => setLightbox(t.mediaUrl)}>
+                                <img src={t.mediaUrl} className="w-full h-40 object-cover hover:opacity-90 transition" alt={t.title} />
+                              </div>
+                            )}
                           </div>
-                        ))
-                      )}
+                          {idx !== timeline.length - 1 && <ChevronDown className="w-5 h-5 text-slate-300 my-1" />}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -399,21 +518,15 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                    <div>
-                    <h3 className="text-center text-lg font-bold mb-4">
-                      {config.supportersTitle || "歴代サポーター"}
-                    </h3>
+                  <div>
+                    <h3 className="text-center text-lg font-bold mb-4">{config.supportersTitle || "歴代サポーター"}</h3>
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-                      {supporters.length === 0 ? (
-                        <p className="text-xs text-slate-400 w-full text-center py-2">サポーター募集中！</p>
-                      ) : (
-                        supporters.map((sup) => (
-                          <div key={sup.id} className="flex flex-col items-center flex-shrink-0 w-20">
-                            <img src={sup.avatarUrl || "/api/placeholder/64/64"} className="w-16 h-16 rounded-2xl border-2 border-pink-200 p-0.5 object-cover shadow-sm mb-1" alt={sup.name} />
-                            <span className="text-xs font-bold text-slate-700 truncate w-full text-center">{sup.name}</span>
-                          </div>
-                        ))
-                      )}
+                      {supporters.map((sup) => (
+                        <div key={sup.id} className="flex flex-col items-center flex-shrink-0 w-20">
+                          <img src={sup.avatarUrl || "/api/placeholder/64/64"} className="w-16 h-16 rounded-2xl border-2 border-pink-200 p-0.5 object-cover shadow-sm mb-1" alt={sup.name} />
+                          <span className="text-xs font-bold text-slate-700 truncate w-full text-center">{sup.name}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -422,7 +535,7 @@ export default function App() {
               {/* MISSION */}
               {tab === "MISSION" && (
                 <div className="p-6 space-y-6">
-                  {mission ? (
+                  {mission && (
                     <>
                       <div className="text-center">
                         <h2 className="text-base font-black text-slate-800">{mission.title}</h2>
@@ -461,10 +574,6 @@ export default function App() {
                         ))}
                       </div>
                     </>
-                  ) : (
-                    <div className="bg-pink-50 border border-pink-100 rounded-2xl p-6 text-center">
-                      <p className="text-sm font-bold text-pink-500">現在開催中のミッションはありません</p>
-                    </div>
                   )}
 
                   <div className="space-y-3">
@@ -475,16 +584,12 @@ export default function App() {
                       <button onClick={handleSendMessage} className="w-full py-2 bg-pink-500 text-white rounded-xl text-xs font-bold shadow-md hover:bg-pink-600 transition">送信する</button>
                     </div>
                     <div className="space-y-2 max-h-48 overflow-y-auto pt-2">
-                      {messages.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-2">最初のメッセージを送ってみよう！</p>
-                      ) : (
-                        messages.map(m => (
-                          <div key={m.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-                            <span className="font-bold block mb-0.5 text-pink-600">{m.name}</span>
-                            <p className="text-slate-600">{m.text}</p>
-                          </div>
-                        ))
-                      )}
+                      {messages.map(m => (
+                        <div key={m.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                          <span className="font-bold block mb-0.5 text-pink-600">{m.name}</span>
+                          <p className="text-slate-600">{m.text}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -568,38 +673,34 @@ export default function App() {
                   
                   {/* カードコレクション一覧 */}
                   <div className="grid grid-cols-3 gap-2">
-                    {cards.length === 0 ? (
-                      <p className="col-span-3 text-xs text-slate-400 text-center py-8">カードがまだ登録されていません</p>
-                    ) : (
-                      cards.map(card => {
-                        const isUnlocked = unlockedCards.includes(card.cardNumber);
-                        return (
-                          <div
-                            key={card.id}
-                            onClick={() => isUnlocked && setLightbox(card.imageUrl)}
-                            className={`aspect-[3/4] rounded-xl border flex flex-col items-center justify-center relative overflow-hidden transition-all ${
-                              isUnlocked
-                                ? "bg-white border-pink-200 shadow-sm cursor-pointer hover:scale-105"
-                                : "bg-slate-50 border-slate-200"
-                            }`}
-                          >
-                            {isUnlocked ? (
-                              <>
-                                <img src={card.imageUrl} className="w-full h-full object-cover" alt={card.title} />
-                                <span className="absolute bottom-1 right-1 bg-black/50 text-white font-bold text-[9px] px-1.5 rounded-full">
-                                  #{card.cardNumber}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <Lock className="w-5 h-5 text-slate-300 mb-1" />
-                                <span className="text-[9px] font-bold text-slate-400">#{card.cardNumber}</span>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
+                    {cards.map(card => {
+                      const isUnlocked = unlockedCards.includes(card.cardNumber);
+                      return (
+                        <div
+                          key={card.id}
+                          onClick={() => isUnlocked && setLightbox(card.imageUrl)}
+                          className={`aspect-[3/4] rounded-xl border flex flex-col items-center justify-center relative overflow-hidden transition-all ${
+                            isUnlocked
+                              ? "bg-white border-pink-200 shadow-sm cursor-pointer hover:scale-105"
+                              : "bg-slate-50 border-slate-200"
+                          }`}
+                        >
+                          {isUnlocked ? (
+                            <>
+                              <img src={card.imageUrl} className="w-full h-full object-cover" alt={card.title} />
+                              <span className="absolute bottom-1 right-1 bg-black/50 text-white font-bold text-[9px] px-1.5 rounded-full">
+                                #{card.cardNumber}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-5 h-5 text-slate-300 mb-1" />
+                              <span className="text-[9px] font-bold text-slate-400">#{card.cardNumber}</span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
